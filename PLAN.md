@@ -50,6 +50,7 @@ Núcleo elegido: mGBA-WASM. ROMs: solo locales. Plataforma: desktop + móvil. MV
 
 ## Fixes
 - [x] `const bridge = bridge` (TDZ al abrir juego) — eliminado, `bridge` a deps.
+- [x] Sin audio jugando solo con mando: el unlock escuchaba solo `pointerdown`/`keydown` y el AudioContext quedaba `suspended` — el pad pulsado también llama a `resumeAudio()` (vendor `pollGamepads`).
 - [x] `mgba: failed to load script: /mgba/mgba.js` — URLs relativas a `document.baseURI` (funciona en subpaths) + error legible que indica usar `npm run dev/preview` en vez de file://.
 ## Verificación
 - `npm run dev -- --host`, `npm run build` ok.

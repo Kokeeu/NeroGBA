@@ -469,6 +469,12 @@ export async function load(config) {
             padMask = mask;
             pushInput();
         }
+        // Gamepad-only players never produce pointer/keyboard gestures, so a
+        // pressed pad also unlocks audio (autoplay policy suspends the
+        // AudioContext otherwise and the game runs silent). resumeAudio is a
+        // no-op once the context is running.
+        if (mask !== 0)
+            resumeAudio();
     };
     // Browsers may refuse to start audio without a user gesture; retry on the
     // next interaction if the context comes up suspended.
