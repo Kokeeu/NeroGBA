@@ -12,9 +12,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'GBA Web',
-        short_name: 'GBA Web',
-        description: 'Emulador de GBA en el navegador (mGBA-WASM). Usa solo dumps propios.',
+        name: 'NeroGBA',
+        short_name: 'NeroGBA',
+        description: 'NeroGBA — emulador de GBA en el navegador (mGBA-WASM). Usa solo dumps propios.',
         theme_color: '#0b0e14',
         background_color: '#0b0e14',
         display: 'standalone',

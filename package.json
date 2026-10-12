@@ -1,7 +1,8 @@
 {
-  "name": "emulador",
+  "name": "nerogba",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "NeroGBA — emulador de GBA en el navegador (mGBA-WASM, Vite + React).",
   "type": "module",
   "scripts": {
     "dev": "vite",

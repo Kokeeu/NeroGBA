@@ -168,9 +168,9 @@ export default function App() {
     <main className="shell">
       <header className="topbar">
         <div>
-          <h1>GBA Web — Fase 3</h1>
+          <h1>NeroGBA</h1>
           <p className="sub">
-            {romName ? `${romName} · ${system} · ${fps} fps` : 'Carga un .gba local para probar el núcleo mGBA-WASM'}
+            {romName ? `${romName} · ${system} · ${fps} fps` : 'Carga un .gba local para jugar en el núcleo mGBA-WASM'}
           </p>
         </div>
         <input

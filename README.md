@@ -1,16 +1,46 @@
-# React + Vite
+# NeroGBA
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Emulador de Game Boy Advance en el navegador. Vite + React 19 + mGBA compilado a WASM. Sin backend, sin COOP/COEP, funciona en desktop y móvil (PWA instalable).
 
-Currently, two official plugins are available:
+> Usa solo dumps propios. Este repo no incluye ninguna ROM con copyright ni `bios.bin` (se usa el reemplazo HLE de mGBA).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Funciones (v1.0)
 
-## React Compiler
+- Carga local `.gba/.gb/.gbc/.sgb/.zip` por picker o drag & drop, con validación de cabecera.
+- Núcleo mGBA-WASM: 60fps, canvas 240x160 pixelado, audio por gesto de usuario, volumen + mute.
+- Pausa / seguir / reset / screenshot PNG.
+- Guardados: SRAM de batería en OPFS (autosave) + 4 slots de savestate en IndexedDB con export/import `.state`.
+- Input: teclado remapeable (Z=A, X=B, Enter=Start, Shift=Select por defecto), gamepad standard automático, controles táctiles en `pointer: coarse` con multitáctil.
+- Display en vivo: filtro pixelado/suave, aspecto nativo/4:3, ghosting LCD. Prefs persistidas.
+- PWA: instalable, funciona offline tras primera carga.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Uso
 
-## Expanding the Oxlint configuration
+1. Abre la app (URL de Netlify).
+2. Pulsa el picker o arrastra tu `.gba` al canvas.
+3. Juega: teclado / mando / táctil. `Guardar` escribe el slot en IndexedDB.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Desarrollo
+
+```bash
+npm install
+npm run dev -- --host   # dev desktop + móvil en LAN
+npm run lint            # oxlint
+npm run build           # build prod a dist/
+npm run preview         # servir dist/ para verificar WASM + PWA
+```
+
+WASM servido desde `public/mgba/mgba.js` + `public/mgba/mgba.wasm` (URLs relativas a `document.baseURI` para que funcione en raíz y en subpaths).
+
+## Deploy
+
+- Netlify: conectado a `main`, publica `dist/` (`npm run build`). Sin headers COOP/COEP.
+- `base: './'` + `public/.nojekyll`: el mismo build vale para Netlify/Vercel (raíz) y GitHub Pages (subpath).
+
+## Stack
+
+Vite 8 · React 19 · `@wasm-gaming/mgba-wasm` · `idb-keyval` · `vite-plugin-pwa` · Canvas 2D · WebAudio · IndexedDB/OPFS.
+
+## Legal
+
+Solo ROMs locales del usuario. Nunca se commitean `*.gba`, `*.sav`, `*.state` ni `bios.bin` (ver `.gitignore`).
