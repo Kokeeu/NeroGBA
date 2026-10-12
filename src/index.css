@@ -1,0 +1,21 @@
+:root {
+  --bg: #0b0e14;
+  --panel: #151b26;
+  --accent: #7c5cff;
+  --text: #e8ecf1;
+  --muted: #9aa4b2;
+  --err: #ff6b6b;
+  --warn: #ffd166;
+  font-family: Inter, system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+body {
+  margin: 0;
+  background: var(--bg);
+}
+#root {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+}
