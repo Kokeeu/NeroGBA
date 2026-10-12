@@ -4,16 +4,18 @@ Emulador de Game Boy Advance en el navegador. Vite + React 19 + mGBA compilado a
 
 > Usa solo dumps propios. Este repo no incluye ninguna ROM con copyright ni `bios.bin` (se usa el reemplazo HLE de mGBA).
 
-## Funciones (v1.0)
+## Funciones (v1.1)
 
-- Carga local `.gba/.gb/.gbc/.sgb/.zip` por picker o drag & drop, con validación de cabecera.
-- Núcleo mGBA-WASM: 60fps, canvas 240x160 pixelado, audio por gesto de usuario, volumen + mute.
-- Pausa / seguir / reset / screenshot PNG.
+- Carga local `.gba/.gb/.gbc/.sgb/.zip` por picker o drag & drop, con validación de cabecera. Últimas 8 ROMs como atajo (re-elige el archivo; los guardados se conservan).
+- Núcleo mGBA-WASM: 60fps, canvas 240x160 pixelado, audio por gesto de usuario (teclado, ratón/táctil o mando), volumen + mute.
+- Pausa / seguir / reset / screenshot PNG / pantalla completa del escenario.
 - Turbo 1x→2x→4x (fast-forward sin audio; SDK vendorizado en `src/vendor/mgba-sdk/`, re-sync manual al actualizar `@wasm-gaming/mgba-wasm`).
-- Guardados: SRAM de batería en OPFS (autosave) + 4 slots de savestate en IndexedDB con export/import `.state`.
-- Input: teclado remapeable (Z=A, X=B, Enter=Start, Shift=Select por defecto), gamepad standard automático, controles táctiles en `pointer: coarse` con multitáctil.
+- Guardados: SRAM de batería en OPFS (autosave) con export/import `.sav` (lectura live, se aplica en caliente) + 4 slots de savestate en IndexedDB con export/import `.state`.
+- Ajustes en modal: teclado remapeable (Z=A, X=B, Enter=Start, Shift=Select por defecto; Escape cancela captura), volumen, filtro/aspecto/ghosting. Avisos en toasts.
+- Input: teclado remapeable, gamepad standard automático, controles táctiles en `pointer: coarse` con multitáctil.
 - Display en vivo: filtro pixelado/suave, aspecto nativo/4:3, ghosting LCD. Prefs persistidas.
 - PWA: instalable, funciona offline tras primera carga.
+- Sin trucos: el núcleo WASM no expone API de cheats.
 
 ## Uso
 

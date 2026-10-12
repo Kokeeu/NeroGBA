@@ -1,8 +1,9 @@
 // Canvas stage: 240x160 (GBA) or 160x144 (GB) — geometry is set by the
 // SDK on boot. Drag & drop a local ROM anywhere on the stage.
-export default function Screen({ canvasRef, status, onDropFile }) {
+export default function Screen({ canvasRef, sectionRef, status, onDropFile }) {
   return (
     <section
+      ref={sectionRef}
       className="stage"
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {

@@ -3,6 +3,8 @@ import { EmulatorBridge, TURBO_LEVELS, getDisplayPrefs, setDisplayPrefs } from '
 import Screen from './components/Screen.jsx';
 import ControlsBar from './components/ControlsBar.jsx';
 import TouchControls from './components/TouchControls.jsx';
+import Toasts from './components/Toasts.jsx';
+import SettingsModal from './components/SettingsModal.jsx';
 import {
   fileToBytes,
   gbaHeaderWarning,
@@ -10,13 +12,20 @@ import {
   validateRomFile,
 } from './emulator/romLoader.js';
 import { exportSlot, importSlot, SLOTS } from './emulator/storage.js';
-import { CONTROLS, DEFAULT_KEYMAP, getKeymap, setKeymap } from './emulator/input/keyboard.js';
+import { addRecent, clearRecents, getRecents } from './emulator/recents.js';
+import { getKeymap, setKeymap } from './emulator/input/keyboard.js';
 import './App.css';
+
+const NOTICE_MS = 4500;
 
 export default function App() {
   const canvasRef = useRef(null);
+  const stageRef = useRef(null);
   const [bridge] = useState(() => new EmulatorBridge());
+  const fileInputRef = useRef(null);
   const importInputRef = useRef(null);
+  const savInputRef = useRef(null);
+  const toastId = useRef(0);
 
   const [romName, setRomName] = useState('');
   const [namespace, setNamespace] = useState('');
@@ -24,8 +33,7 @@ export default function App() {
   const [booted, setBooted] = useState(false);
   const [fps, setFps] = useState(0);
   const [system, setSystem] = useState('');
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const [toasts, setToasts] = useState([]);
   const [volume, setVolume] = useState(1);
   const [muted, setMuted] = useState(false);
   const [display, setDisplay] = useState(getDisplayPrefs);
@@ -35,6 +43,28 @@ export default function App() {
   const [slotsUsed, setSlotsUsed] = useState({});
   const [keymap, setKeymapState] = useState(getKeymap);
   const [rebinding, setRebinding] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [recents, setRecents] = useState(getRecents);
+
+  const dismissToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const pushToast = useCallback(
+    (kind, text) => {
+      const id = ++toastId.current;
+      setToasts((prev) => [...prev.slice(-3), { id, kind, text }]);
+      if (kind !== 'error') {
+        setTimeout(() => dismissToast(id), NOTICE_MS);
+      }
+      return id;
+    },
+    [dismissToast],
+  );
+
+  const toastError = useCallback((text) => pushToast('error', text), [pushToast]);
+  const toastInfo = useCallback((text) => pushToast('info', text), [pushToast]);
 
   const refreshSlots = useCallback(async (ns) => {
     if (!ns) return;
@@ -46,12 +76,22 @@ export default function App() {
 
   useEffect(() => () => bridge?.destroy(), [bridge]);
 
-  // Capture next keydown when rebinding a control.
+  useEffect(() => {
+    const onFs = () => setFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFs);
+    return () => document.removeEventListener('fullscreenchange', onFs);
+  }, []);
+
+  // Capture next keydown when rebinding a control (Escape cancels).
   useEffect(() => {
     if (!rebinding) return;
     const onKey = (e) => {
       e.preventDefault();
       e.stopPropagation();
+      if (e.code === 'Escape') {
+        setRebinding(null);
+        return;
+      }
       const next = { ...getKeymap(), [rebinding]: e.code };
       setKeymap(next);
       setKeymapState(next);
@@ -64,18 +104,17 @@ export default function App() {
 
   const handleFile = useCallback(
     async (file) => {
-      setError('');
-      setNotice('');
+      setToasts([]);
       const err = validateRomFile(file);
       if (err) {
-        setError(err);
+        toastError(err);
         return;
       }
       setStatus('loading');
       try {
         const bytes = await fileToBytes(file);
         const warn = gbaHeaderWarning(bytes, file.name);
-        if (warn) setNotice(warn);
+        if (warn) toastInfo(warn);
         const ns = await storageNamespaceFor(file.name, bytes);
         await bridge.boot({
           canvas: canvasRef.current,
@@ -93,14 +132,15 @@ export default function App() {
         setBooted(true);
         setPaused(false);
         setTurbo(1);
+        setRecents(addRecent({ name: file.name, namespace: ns, system: bridge.system }));
         await refreshSlots(ns);
       } catch (e) {
         setStatus('error');
         setBooted(false);
-        setError(e?.message || 'No se pudo arrancar la ROM.');
+        toastError(e?.message || 'No se pudo arrancar la ROM.');
       }
     },
-    [refreshSlots, bridge, volume, muted, display],
+    [refreshSlots, bridge, volume, muted, display, toastError, toastInfo],
   );
 
   const onDisplay = (key, value) => {
@@ -108,6 +148,14 @@ export default function App() {
     setDisplay(next);
     setDisplayPrefs(next);
     bridge?.setDisplay(key, value);
+  };
+  const onVolume = (v) => {
+    setVolume(v);
+    if (muted && v > 0) {
+      setMuted(false);
+      bridge?.setMuted(false);
+    }
+    bridge.setVolume(v);
   };
   const onToggleMute = () => {
     const next = !muted;
@@ -119,9 +167,22 @@ export default function App() {
     bridge?.setTurbo(next);
     setTurbo(next);
   };
+  const onFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await stageRef.current?.requestFullscreen();
+    } catch {
+      toastError('Pantalla completa no disponible en este navegador.');
+    }
+  };
+  const onKeymapReset = (fresh) => {
+    setKeymapState(fresh);
+    bridge?.applyKeymap(fresh);
+    toastInfo('Teclado restablecido a defaults.');
+  };
   const guard = () => {
     if (!booted) {
-      setError('Carga primero una ROM.');
+      toastError('Carga primero una ROM.');
       return false;
     }
     return true;
@@ -131,25 +192,25 @@ export default function App() {
     if (!guard()) return;
     try {
       await bridge.saveSlot(slot);
-      setNotice(`Slot ${slot} guardado en IndexedDB.`);
+      toastInfo(`Slot ${slot} guardado en IndexedDB.`);
       await refreshSlots(namespace);
     } catch (e) {
-      setError(e?.message || 'saveState falló.');
+      toastError(e?.message || 'saveState falló.');
     }
   };
   const onLoad = async () => {
     if (!guard()) return;
     try {
       await bridge.loadSlot(slot);
-      setNotice(`Slot ${slot} cargado.`);
+      toastInfo(`Slot ${slot} cargado.`);
     } catch (e) {
-      setError(e?.message || 'loadState falló.');
+      toastError(e?.message || 'loadState falló.');
     }
   };
   const onDelete = async () => {
     if (!guard()) return;
     await bridge.deleteSlotData(slot);
-    setNotice(`Slot ${slot} borrado.`);
+    toastInfo(`Slot ${slot} borrado.`);
     await refreshSlots(namespace);
   };
   const onExport = async () => {
@@ -157,18 +218,40 @@ export default function App() {
     try {
       await exportSlot(namespace, slot, romName);
     } catch (e) {
-      setError(e?.message || 'Export falló.');
+      toastError(e?.message || 'Export falló.');
     }
   };
   const onImportFile = async (file) => {
     if (!guard() || !file) return;
     try {
       await importSlot(namespace, slot, file);
-      setNotice(`Importado a slot ${slot}. Pulsa Cargar.`);
+      toastInfo(`Importado a slot ${slot}. Pulsa Cargar.`);
       await refreshSlots(namespace);
     } catch (e) {
-      setError(e?.message || 'Import falló.');
+      toastError(e?.message || 'Import falló.');
     }
+  };
+  const onExportSav = async () => {
+    if (!guard()) return;
+    try {
+      await bridge.exportSram();
+      toastInfo('Batería .sav exportada.');
+    } catch (e) {
+      toastError(e?.message || 'Export .sav falló.');
+    }
+  };
+  const onImportSavFile = async (file) => {
+    if (!guard() || !file) return;
+    try {
+      await bridge.importSram(file);
+      toastInfo('.sav importado y aplicado al juego.');
+    } catch (e) {
+      toastError(e?.message || 'Import .sav falló.');
+    }
+  };
+  const onRecent = (r) => {
+    fileInputRef.current?.click();
+    toastInfo(`Elige de nuevo ${r.name} para continuar (los guardados se conservan).`);
   };
 
   return (
@@ -181,30 +264,42 @@ export default function App() {
           </p>
         </div>
         <input
+          ref={fileInputRef}
           type="file"
           accept=".gba,.gb,.gbc,.sgb,.zip"
-          onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+          onChange={(e) => {
+            if (e.target.files?.[0]) handleFile(e.target.files[0]);
+            e.target.value = '';
+          }}
         />
       </header>
 
-      <Screen canvasRef={canvasRef} status={status} onDropFile={handleFile} />
+      <Screen canvasRef={canvasRef} sectionRef={stageRef} status={status} onDropFile={handleFile} />
 
       {booted && <TouchControls keymap={keymap} />}
 
-      {(error || notice) && (
-        <div className="notices">
-          {error && <p className="err">{error}</p>}
-          {notice && <p className="warn">{notice}</p>}
-        </div>
+      <Toasts toasts={toasts} onDismiss={dismissToast} />
+
+      {!booted && recents.length > 0 && (
+        <section className="controls recents" aria-label="ROMs recientes">
+          <h2>Recientes</h2>
+          {recents.map((r) => (
+            <button key={r.namespace} type="button" onClick={() => onRecent(r)} title={r.system || ''}>
+              {r.name}
+            </button>
+          ))}
+          <button type="button" className="linklike" onClick={() => setRecents(clearRecents())}>
+            Limpiar
+          </button>
+        </section>
       )}
 
       <ControlsBar
         booted={booted}
         paused={paused}
         turbo={turbo}
-        volume={volume}
         muted={muted}
-        display={display}
+        fullscreen={fullscreen}
         onPause={() => {
           bridge.pause();
           setPaused(true);
@@ -215,17 +310,10 @@ export default function App() {
         }}
         onReset={() => bridge.reset()}
         onTurbo={onTurbo}
-        onScreenshot={() => bridge.screenshot().catch((e) => setError(e.message))}
-        onVolume={(v) => {
-          setVolume(v);
-          if (muted && v > 0) {
-            setMuted(false);
-            bridge?.setMuted(false);
-          }
-          bridge.setVolume(v);
-        }}
+        onScreenshot={() => bridge.screenshot().catch((e) => toastError(e.message))}
         onToggleMute={onToggleMute}
-        onDisplay={onDisplay}
+        onFullscreen={onFullscreen}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       <section className="controls">
@@ -266,25 +354,46 @@ export default function App() {
         />
       </section>
 
-      <section className="controls keymap">
-        <h2>Teclado</h2>
-        {CONTROLS.map((action) => (
-          <button
-            key={action}
-            type="button"
-            className={rebinding === action ? 'rebind' : ''}
-            onClick={() => setRebinding(action)}
-            title={`Default: ${DEFAULT_KEYMAP[action]}`}
-          >
-            {action.replace('p1.', '')}: {rebinding === action ? 'pulsa tecla…' : keymap[action]}
-          </button>
-        ))}
+      <section className="controls" aria-label="Batería SRAM">
+        <h2>Batería (.sav)</h2>
+        <button type="button" onClick={onExportSav}>
+          Exportar .sav
+        </button>
+        <button type="button" onClick={() => savInputRef.current?.click()}>
+          Importar .sav
+        </button>
+        <input
+          ref={savInputRef}
+          type="file"
+          accept=".sav,.bin,application/octet-stream"
+          hidden
+          onChange={(e) => {
+            if (e.target.files?.[0]) onImportSavFile(e.target.files[0]);
+            e.target.value = '';
+          }}
+        />
       </section>
+
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => {
+          setSettingsOpen(false);
+          setRebinding(null);
+        }}
+        keymap={keymap}
+        rebinding={rebinding}
+        onRebind={setRebinding}
+        onKeymapReset={onKeymapReset}
+        volume={muted ? 0 : volume}
+        onVolume={onVolume}
+        display={display}
+        onDisplay={onDisplay}
+      />
 
       <footer className="help">
         <p>
           Gamepad standard funciona solo. Sin BIOS se usa el reemplazo HLE. SRAM de batería la
-          persiste el núcleo en OPFS cada 15s.
+          persiste el núcleo en OPFS cada 15s (exportable como .sav).
         </p>
         <p className="legal">Usa solo dumps propios. No se incluye ninguna ROM con copyright.</p>
       </footer>

@@ -173,6 +173,33 @@ export class EmulatorBridge {
     return deleteSlot(this.namespace, slot);
   }
 
+  savName() {
+    const base = (this.romName || 'gba').replace(/\.[^.]+$/, '') || 'gba';
+    return `${base}.sav`;
+  }
+
+  async exportSram() {
+    if (!this.engine) throw new Error('Sin emulador arrancado.');
+    const bytes = await this.engine.saveSram();
+    if (!bytes) throw new Error('Este juego no tiene guardado de batería.');
+    const blob = new Blob([bytes], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = this.savName();
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    return bytes.length;
+  }
+
+  async importSram(file) {
+    if (!this.engine) throw new Error('Sin emulador arrancado.');
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (!bytes.length) throw new Error('Archivo .sav vacío.');
+    await this.engine.loadSram(bytes);
+    return bytes.length;
+  }
+
   async screenshot() {
     if (!this.engine) throw new Error('Sin emulador arrancado.');
     const blob = await this.engine.screenshot();

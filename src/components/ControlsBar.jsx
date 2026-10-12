@@ -1,20 +1,19 @@
-// Transport + live audio/video settings. All display options apply to the
-// running game via engine.config (no reboot needed).
+// Transport bar. Volume/display live settings live in SettingsModal;
+// here only transport + mute + fullscreen + a shortcut to settings.
 export default function ControlsBar({
   booted,
   paused,
   turbo,
-  volume,
   muted,
-  display,
+  fullscreen,
   onPause,
   onResume,
   onReset,
   onTurbo,
   onScreenshot,
-  onVolume,
   onToggleMute,
-  onDisplay,
+  onFullscreen,
+  onOpenSettings,
 }) {
   return (
     <section className="controls">
@@ -39,45 +38,21 @@ export default function ControlsBar({
       <button type="button" disabled={!booted} onClick={onScreenshot}>
         Screenshot
       </button>
-      <label className="vol">
-        Vol
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.05}
-          value={muted ? 0 : volume}
-          onChange={(e) => onVolume(Number(e.target.value))}
-        />
-      </label>
       <button type="button" disabled={!booted} onClick={onToggleMute}>
         {muted ? 'Unmute' : 'Mute'}
       </button>
-      <label>
-        Filtro
-        <select
-          value={display.renderFilter}
-          onChange={(e) => onDisplay('renderFilter', e.target.value)}
-        >
-          <option value="pixelated">Pixelado</option>
-          <option value="smooth">Suave</option>
-        </select>
-      </label>
-      <label>
-        Aspecto
-        <select value={display.aspect} onChange={(e) => onDisplay('aspect', e.target.value)}>
-          <option value="native">Nativo</option>
-          <option value="4:3">4:3</option>
-        </select>
-      </label>
-      <label className="check">
-        <input
-          type="checkbox"
-          checked={display.interframeBlending}
-          onChange={(e) => onDisplay('interframeBlending', e.target.checked)}
-        />
-        Ghosting LCD
-      </label>
+      <button
+        type="button"
+        disabled={!booted}
+        onClick={onFullscreen}
+        aria-pressed={fullscreen}
+        title="Pantalla completa del escenario"
+      >
+        {fullscreen ? 'Salir ⛶' : '⛶'}
+      </button>
+      <button type="button" onClick={onOpenSettings}>
+        Ajustes
+      </button>
     </section>
   );
 }

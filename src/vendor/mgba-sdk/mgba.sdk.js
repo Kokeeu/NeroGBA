@@ -825,6 +825,21 @@ export async function load(config) {
         },
         setInput,
         setTurbo,
+        // NeroGBA: live battery-save access for .sav export/import. Reads the
+        // core's current SRAM (always fresh, no 15s OPFS race) and writes an
+        // imported image straight into the running core + persists it.
+        async saveSram() {
+            return cloneSram();
+        },
+        async loadSram(data) {
+            const bytes = data instanceof Uint8Array ? data : new Uint8Array(data || []);
+            if (!bytes.length)
+                throw new Error('mgba: empty SRAM image');
+            const ptr = heapAlloc(mod, bytes);
+            mod._mgbawasm_sram_load(ptr, bytes.length);
+            mod._free(ptr);
+            await persistSram();
+        },
         async saveState() {
             const size = mod._mgbawasm_state_size();
             if (!size)

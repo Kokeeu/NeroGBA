@@ -43,8 +43,15 @@ Núcleo elegido: mGBA-WASM. ROMs: solo locales. Plataforma: desktop + móvil. MV
 - [x] Responsive: canvas full-width en <768px, editor de teclado oculto en móvil, viewport-fit=cover.
 - [x] PWA: `vite-plugin-pwa` (autoUpdate) + manifest GBA Web + `pwa-icon.svg`. `build` genera `sw.js` + `manifest.webmanifest` (200 en preview).
 
-## Deploy (Vercel / Netlify / GitHub Pages) — DONE
-- [x] `base: './'` + manifest (`scope`, `start_url`, icono) relativo + `public/.nojekyll`.
+## Fase 8 - Extras v1.1 — DONE
+- [x] SRAM `.sav`: `saveSram()/loadSram()` en vendor (lectura live del core, sin race con autosave OPFS) → `bridge.exportSram()/importSram()` → sección Batería (.sav) en `App.jsx` (export descarga `<rom>.sav`, import lo aplica en caliente + persiste).
+- [x] Pantalla completa: botón ⛶ en `ControlsBar.jsx` sobre el stage (`sectionRef`), estado vía `fullscreenchange`.
+- [x] `SettingsModal.jsx`: tabla remapeo teclado (Escape cancela captura) + restablecer defaults + volumen + filtro/aspecto/ghosting. Volumen/display salen de la barra (queda transporte + mute + fullscreen + Ajustes).
+- [x] `Toasts.jsx`: stack info auto-dismiss 4.5s + errores sticky con cierre; sustituye avisos inline.
+- [x] `recents.js`: últimas 8 ROMs (solo namespaces, nunca bytes) en localStorage; atajo re-abre el picker, los guardados se conservan por namespace.
+- [ ] Trucos GameShark/ActionReplay — descartado: el shim WASM no expone API de cheats (solo sram/state/video/audio/keys); requeriría recompilar el core.
+
+## Deploy (Vercel / Netlify / GitHub Pages) — DONE- [x] `base: './'` + manifest (`scope`, `start_url`, icono) relativo + `public/.nojekyll`.
 - [x] Verificado bajo subpath `/repo/` (simula Pages): index, assets, `mgba.js`, `mgba.wasm`, manifest → 200. La URL absoluta antigua `/mgba/...` da 404 ahí (por eso fallaba).
 - Vercel/Netlify (raíz + HTTPS): sin config extra, sin COOP/COEP. Desplegar `dist/` (`npm run build`).
 
