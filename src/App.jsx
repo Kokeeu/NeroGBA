@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { EmulatorBridge, getDisplayPrefs, setDisplayPrefs } from './emulator/EmulatorBridge.js';
+import { EmulatorBridge, TURBO_LEVELS, getDisplayPrefs, setDisplayPrefs } from './emulator/EmulatorBridge.js';
 import Screen from './components/Screen.jsx';
 import ControlsBar from './components/ControlsBar.jsx';
 import TouchControls from './components/TouchControls.jsx';
@@ -30,6 +30,7 @@ export default function App() {
   const [muted, setMuted] = useState(false);
   const [display, setDisplay] = useState(getDisplayPrefs);
   const [paused, setPaused] = useState(false);
+  const [turbo, setTurbo] = useState(1);
   const [slot, setSlot] = useState(1);
   const [slotsUsed, setSlotsUsed] = useState({});
   const [keymap, setKeymapState] = useState(getKeymap);
@@ -91,6 +92,7 @@ export default function App() {
         setStatus('running');
         setBooted(true);
         setPaused(false);
+        setTurbo(1);
         await refreshSlots(ns);
       } catch (e) {
         setStatus('error');
@@ -111,6 +113,11 @@ export default function App() {
     const next = !muted;
     setMuted(next);
     bridge?.setMuted(next);
+  };
+  const onTurbo = () => {
+    const next = TURBO_LEVELS[(TURBO_LEVELS.indexOf(turbo) + 1) % TURBO_LEVELS.length];
+    bridge?.setTurbo(next);
+    setTurbo(next);
   };
   const guard = () => {
     if (!booted) {
@@ -170,7 +177,7 @@ export default function App() {
         <div>
           <h1>NeroGBA</h1>
           <p className="sub">
-            {romName ? `${romName} · ${system} · ${fps} fps` : 'Carga un .gba local para jugar en el núcleo mGBA-WASM'}
+            {romName ? `${romName} · ${system} · ${fps} fps${turbo > 1 ? ` · Turbo ${turbo}x` : ''}` : 'Carga un .gba local para jugar en el núcleo mGBA-WASM'}
           </p>
         </div>
         <input
@@ -194,6 +201,7 @@ export default function App() {
       <ControlsBar
         booted={booted}
         paused={paused}
+        turbo={turbo}
         volume={volume}
         muted={muted}
         display={display}
@@ -206,6 +214,7 @@ export default function App() {
           setPaused(false);
         }}
         onReset={() => bridge.reset()}
+        onTurbo={onTurbo}
         onScreenshot={() => bridge.screenshot().catch((e) => setError(e.message))}
         onVolume={(v) => {
           setVolume(v);

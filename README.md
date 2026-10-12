@@ -9,6 +9,7 @@ Emulador de Game Boy Advance en el navegador. Vite + React 19 + mGBA compilado a
 - Carga local `.gba/.gb/.gbc/.sgb/.zip` por picker o drag & drop, con validación de cabecera.
 - Núcleo mGBA-WASM: 60fps, canvas 240x160 pixelado, audio por gesto de usuario, volumen + mute.
 - Pausa / seguir / reset / screenshot PNG.
+- Turbo 1x→2x→4x (fast-forward sin audio; SDK vendorizado en `src/vendor/mgba-sdk/`, re-sync manual al actualizar `@wasm-gaming/mgba-wasm`).
 - Guardados: SRAM de batería en OPFS (autosave) + 4 slots de savestate en IndexedDB con export/import `.state`.
 - Input: teclado remapeable (Z=A, X=B, Enter=Start, Shift=Select por defecto), gamepad standard automático, controles táctiles en `pointer: coarse` con multitáctil.
 - Display en vivo: filtro pixelado/suave, aspecto nativo/4:3, ghosting LCD. Prefs persistidas.

@@ -1,10 +1,14 @@
-// Lifecycle wrapper around the @wasm-gaming/mgba-wasm engine instance.
+// Lifecycle wrapper around the vendored mGBA engine instance
+// (src/vendor/mgba-sdk/mgba.sdk.js, forked from @wasm-gaming/mgba-wasm
+// to add fast-forward turbo — upstream exposes no speed API).
 // NOTE: the SDK binds canvas 2D + AudioContext + window listeners, so it
 // intentionally runs on the main thread (no Worker). Its internal loop is
 // audio-clocked via rAF and holds 60fps without blocking UI.
-import { load } from '@wasm-gaming/mgba-wasm';
+import { load } from '../vendor/mgba-sdk/mgba.sdk.js';
 import { deleteSlot, readSlot, slotHasData, writeSlot } from './storage.js';
 import { getKeymap } from './input/keyboard.js';
+
+export const TURBO_LEVELS = [1, 2, 4];
 
 export const DEFAULT_DISPLAY = {
   renderFilter: 'pixelated',
@@ -60,6 +64,7 @@ export class EmulatorBridge {
     this.romName = '';
     this.muted = false;
     this.preMuteVolume = 1;
+    this.turbo = 1;
   }
 
   get booted() {
@@ -100,10 +105,12 @@ export class EmulatorBridge {
       throw new Error(friendlyBootError(e));
     }
     engine.setInput(getKeymap());
+    engine.setTurbo(1);
     engine.start();
     this.engine = engine;
     this.namespace = namespace;
     this.romName = romName;
+    this.turbo = 1;
     return engine;
   }
 
@@ -131,6 +138,13 @@ export class EmulatorBridge {
 
   setDisplay(key, value) {
     this.engine?.config.write(key, value);
+  }
+
+  setTurbo(level) {
+    const next = TURBO_LEVELS.includes(level) ? level : 1;
+    this.turbo = next;
+    this.engine?.setTurbo(next);
+    return next;
   }
 
   applyKeymap(map) {

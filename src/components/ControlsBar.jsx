@@ -3,12 +3,14 @@
 export default function ControlsBar({
   booted,
   paused,
+  turbo,
   volume,
   muted,
   display,
   onPause,
   onResume,
   onReset,
+  onTurbo,
   onScreenshot,
   onVolume,
   onToggleMute,
@@ -24,6 +26,15 @@ export default function ControlsBar({
       </button>
       <button type="button" disabled={!booted} onClick={onReset}>
         Reset
+      </button>
+      <button
+        type="button"
+        disabled={!booted}
+        onClick={onTurbo}
+        aria-pressed={turbo > 1}
+        title={turbo > 1 ? `Turbo ${turbo}x activo (sin audio)` : 'Activar turbo'}
+      >
+        Turbo {turbo > 1 ? `${turbo}x` : '1x'}
       </button>
       <button type="button" disabled={!booted} onClick={onScreenshot}>
         Screenshot

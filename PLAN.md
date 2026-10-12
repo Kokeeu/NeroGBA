@@ -31,9 +31,9 @@ Núcleo elegido: mGBA-WASM. ROMs: solo locales. Plataforma: desktop + móvil. MV
 - [x] Gamepad standard: lo sondea el SDK cada frame, sin código propio.
 - [ ] `touch.jsx` overlay solo `pointer:coarse` → pasa a Fase 7 (móvil).
 
-## Fase 5 - Controles MVP (0.5d) — PARCIAL (hecho en Fases 2-3)
+## Fase 5 - Controles MVP (0.5d) — DONE
 - [x] `ControlsBar.jsx`: pausa, screenshot PNG, selector slots.
-- [ ] Turbo 2x/4x: el SDK no expone multiplicador (loop interno máx. 5 frames/tick). Requiere patch del SDK o rAF propio → aparcado.
+- [x] Turbo 1x→2x→4x: SDK vendorizado en `src/vendor/mgba-sdk/` (fork de `@wasm-gaming/mgba-wasm@0.1.1`, que no expone velocidad: loop audio-clocked capado a 5 frames/tick). Parche: frames fijos por tick + descarte de audio + mute forzado con restauración de `state.volume`; `engine.setTurbo()` → `bridge.setTurbo()` → botón ciclador en `ControlsBar.jsx` con indicador `Turbo Nx` en el header. Re-sync manual al actualizar el paquete.
 
 ## Fase 6 - Saves (0.5d) — DONE en Fase 2
 - [x] `storage.js`: 4 slots savestate en IndexedDB + export/import `.state`. SRAM en OPFS por el SDK (autosave 15s + al pausar).
