@@ -373,7 +373,7 @@ export default function App() {
         )}
         <Screen canvasRef={canvasRef} status={booted ? status : 'idle'} onDropFile={handleFile} />
 
-        {booted && <TouchControls keymap={keymap} />}
+        {booted && <TouchControls keymap={keymap} turbo={turbo} onTurbo={onTurbo} />}
 
         {fullscreenActive && (
           <FsMenu

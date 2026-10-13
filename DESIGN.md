@@ -29,8 +29,8 @@ Referencia: `Art School Students Draw Blue Period Exhibit Key` (azul ultramar + 
 [Emulador: header + canvas + touch + controles + slots + .sav]
 ```
 
-## Layout Móvil (<768px)
-Canvas full-width arriba, D-pad izquierda + A/B derecha abajo (44px min touch), L/R hombros arriba, Start/Select centro. `touch-action: none`. PWA instalable.
+## Layout Móvil (<768px, coarse)
+Estilo My Boy: en vertical deck debajo de la pantalla (fila L » R con turbo central, cruceta izq + A/B en diagonal der con A grande abajo, Select/Start centrados abajo); en horizontal y en fullscreen overlay translúcido sobre el juego (L/R arriba, cruceta abajo-izq, A/B abajo-der, Select/Start abajo-centro). `touch-action: none`, multitáctil por pointerId. PWA instalable.
 
 ## Componentes
 - `Screen.jsx`: aspect 3:2, letterbox, overlay "Arrastra .gba aquí".

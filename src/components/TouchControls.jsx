@@ -1,8 +1,10 @@
 // Touch overlay for coarse pointers (phones/tablets).
+// Layout estilo My Boy: fila L » R, cruceta + A/B y Select/Start.
 // Drives the emulator by dispatching synthetic KeyboardEvents through the
 // active keymap — the SDK already listens on window for keydown/keyup by
 // e.code, so no extra input plumbing is needed. CSS hides this on fine
-// pointers; it only renders while a game is booted.
+// pointers; it only renders while a game is booted. El botón » es turbo
+// (bridge) y viene por props desde App.
 import { useRef } from 'react';
 
 function press(code) {
@@ -43,13 +45,25 @@ function TouchButton({ action, label, code, className = '' }) {
   );
 }
 
-export default function TouchControls({ keymap }) {
+export default function TouchControls({ keymap, turbo = 1, onTurbo }) {
   const c = (action) => keymap[action];
   return (
     <section className="touch" aria-label="Controles táctiles">
       <div className="tshoulders">
-        <TouchButton action="L" label="L" code={c('p1.l')} />
-        <TouchButton action="R" label="R" code={c('p1.r')} />
+        <TouchButton action="L" label="L" code={c('p1.l')} className="tshoulder" />
+        {onTurbo && (
+          <button
+            type="button"
+            className={`tbtn tturbo${turbo > 1 ? ' on' : ''}`}
+            onClick={onTurbo}
+            aria-pressed={turbo > 1}
+            aria-label="Turbo"
+            title={turbo > 1 ? `Turbo ${turbo}x activo` : 'Activar turbo'}
+          >
+            »
+          </button>
+        )}
+        <TouchButton action="R" label="R" code={c('p1.r')} className="tshoulder" />
       </div>
       <div className="tmain">
         <div className="dpad" aria-label="Cruceta">
@@ -63,14 +77,14 @@ export default function TouchControls({ keymap }) {
           <TouchButton action="down" label="▼" code={c('p1.down')} />
           <span />
         </div>
-        <div className="tcenter">
-          <TouchButton action="select" label="SELECT" code={c('p1.select')} className="tsmall" />
-          <TouchButton action="start" label="START" code={c('p1.start')} className="tsmall" />
-        </div>
         <div className="ab" aria-label="Botones A B">
           <TouchButton action="B" label="B" code={c('p1.b')} className="tround" />
           <TouchButton action="A" label="A" code={c('p1.a')} className="tround" />
         </div>
+      </div>
+      <div className="tstart">
+        <TouchButton action="select" label="SELECT" code={c('p1.select')} className="tsmall" />
+        <TouchButton action="start" label="START" code={c('p1.start')} className="tsmall" />
       </div>
     </section>
   );

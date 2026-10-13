@@ -641,23 +641,27 @@
   max-height: 100vh;
 }
 
-/* Touch overlay: only on coarse pointers, only while booted (React). */
+/* Touch — layout My Boy en coarse, Blue Period.
+   Vertical: deck debajo de la pantalla (L » R / cruceta+A/B / Select+Start).
+   Horizontal y fullscreen: overlay translúcido sobre el juego. */
 .touch {
   display: none;
-  background: var(--panel);
-  border: 1.5px solid var(--sumi);
-  border-bottom: 4px solid var(--sumi);
-  border-radius: 8px 18px 8px 18px;
-  padding: 12px;
-  user-select: none;
-  -webkit-user-select: none;
-  box-shadow: 4px 4px 0 rgba(20, 24, 36, 0.9);
 }
 @media (pointer: coarse) {
   .touch {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--panel);
+    border: 1.5px solid var(--sumi);
+    border-bottom: 4px solid var(--sumi);
+    border-radius: 8px 18px 8px 18px;
+    padding: 12px;
+    user-select: none;
+    -webkit-user-select: none;
+    box-shadow: 4px 4px 0 rgba(20, 24, 36, 0.9);
   }
-  /* En fullscreen: pad flotante, no empuja el canvas */
+  /* Fullscreen vertical: deck flotante abajo, no empuja el canvas */
   .fs-wrap:fullscreen .touch,
   .fs-wrap.pseudo-fullscreen .touch {
     position: absolute;
@@ -676,6 +680,65 @@
   .fs-wrap.pseudo-fullscreen .touch .tbtn {
     pointer-events: auto;
     opacity: 0.92;
+  }
+}
+/* Horizontal: clusters superpuestos (L/R arriba, cruceta izq, A/B der,
+   Select/Start abajo-centro), como el My Boy apaisado. Gana al deck
+   de fullscreen por ir después con igual especificidad. */
+@media (pointer: coarse) and (orientation: landscape) {
+  .fs-wrap .touch,
+  .fs-wrap:fullscreen .touch,
+  .fs-wrap.pseudo-fullscreen .touch {
+    position: absolute;
+    inset: 0;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 5;
+    display: block;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    pointer-events: none;
+  }
+  .fs-wrap .tshoulders,
+  .fs-wrap:fullscreen .tshoulders,
+  .fs-wrap.pseudo-fullscreen .tshoulders {
+    position: absolute;
+    top: calc(8px + env(safe-area-inset-top));
+    left: 10px;
+    right: 10px;
+    margin: 0;
+  }
+  .fs-wrap .tmain,
+  .fs-wrap:fullscreen .tmain,
+  .fs-wrap.pseudo-fullscreen .tmain {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+  .fs-wrap .tstart,
+  .fs-wrap:fullscreen .tstart,
+  .fs-wrap.pseudo-fullscreen .tstart {
+    position: absolute;
+    left: 50%;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+  }
+  .fs-wrap .touch .tbtn,
+  .fs-wrap:fullscreen .touch .tbtn,
+  .fs-wrap.pseudo-fullscreen .touch .tbtn {
+    pointer-events: auto;
+    opacity: 0.8;
+  }
+  .fs-wrap .touch .tbtn:active,
+  .fs-wrap:fullscreen .touch .tbtn:active,
+  .fs-wrap.pseudo-fullscreen .touch .tbtn:active {
+    opacity: 1;
   }
 }
 .touch .tbtn {
@@ -699,31 +762,53 @@
 .tshoulders {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  align-items: center;
+  gap: 8px;
 }
-.tshoulders .tbtn {
-  min-width: 96px;
+/* L/R como pestañas de hombro */
+.tshoulders .tbtn.tshoulder {
+  min-width: 88px;
+  border-radius: 4px 4px 14px 14px;
   background: linear-gradient(180deg, var(--lienzo), #e4dac4);
   color: var(--sumi);
+  font-weight: 700;
+}
+/* » turbo central */
+.touch .tbtn.tturbo {
+  min-width: 52px;
+  min-height: 44px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--lienzo), #e4dac4);
+  color: var(--sumi);
+  font-size: 18px;
+  font-weight: 800;
+}
+.touch .tbtn.tturbo.on {
+  background: linear-gradient(180deg, #ef5a28, var(--cartel));
+  color: #fff;
 }
 .tmain {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
 }
 .dpad {
   display: grid;
-  grid-template-columns: repeat(3, 56px);
-  grid-auto-rows: 56px;
+  grid-template-columns: repeat(3, 58px);
+  grid-auto-rows: 58px;
 }
-.tcenter {
+.dpad .tbtn {
+  border-radius: 10px;
+}
+/* Fila Select/Start centrada */
+.tstart {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  justify-content: center;
+  gap: 14px;
 }
 .touch .tbtn.tsmall {
-  min-width: 72px;
+  min-width: 84px;
   min-height: 44px;
   font-size: 12px;
   border-radius: 999px;
@@ -734,16 +819,18 @@
 .touch .tbtn.tsmall:active {
   transform: rotate(-12deg) translateY(2px);
 }
+/* A/B en diagonal: B arriba-izq pequeña, A abajo-der grande */
 .ab {
   display: flex;
-  gap: 12px;
-  align-items: center;
+  gap: 10px;
+  align-items: flex-start;
+  padding-top: 4px;
 }
 .touch .tbtn.tround {
   border-radius: 50% 46% 52% 48%;
-  min-width: 68px;
-  min-height: 68px;
-  font-size: 20px;
+  min-width: 62px;
+  min-height: 62px;
+  font-size: 18px;
   border: 2px solid var(--sumi);
   color: #fff;
 }
@@ -752,7 +839,11 @@
   background: radial-gradient(circle at 35% 30%, #f0663a, var(--cartel) 55%, #a32e10);
 }
 .touch .tbtn.tround:last-child {
-  /* A — turquesa pañuelo */
+  /* A — turquesa pañuelo, más grande y baja */
+  min-width: 76px;
+  min-height: 76px;
+  font-size: 22px;
+  margin-top: 22px;
   background: radial-gradient(circle at 35% 30%, #46aaa5, var(--turquesa) 55%, #1d5a57);
 }
 .touch .tbtn.tround:active {
