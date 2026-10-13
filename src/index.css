@@ -1,18 +1,36 @@
 :root {
-  --bg: #0b0e14;
-  --panel: #151b26;
-  --accent: #7c5cff;
-  --text: #e8ecf1;
-  --muted: #9aa4b2;
-  --err: #ff6b6b;
-  --warn: #ffd166;
+  /* Blue Period — galería clara (papel + ultramar + bermellón) */
+  --bg: #f4efe4;
+  --panel: #faf7ef;
+  --accent: #1b2f7a;
+  --accent-2: #2e4a9e;
+  --text: #141824;
+  --muted: #5a6070;
+  --err: #b3261e;
+  --warn: #e04a1f;
+  --turquesa: #2f8f8b;
+  --melocoton: #f2c9a8;
+  --sumi: #141824;
+  --cartel: #e04a1f;
+  --lienzo: #faf7ef;
+  --marco: #141824;
   font-family: Inter, system-ui, sans-serif;
   color: var(--text);
   background: var(--bg);
 }
 body {
   margin: 0;
-  background: var(--bg);
+  background-color: var(--bg);
+  /* Fibra de papel: dos tramas cruzadas muy tenues */
+  background-image:
+    repeating-linear-gradient(0deg, rgba(20, 24, 36, 0.035) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(90deg, rgba(20, 24, 36, 0.025) 0 1px, transparent 1px 7px);
+}
+button:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--accent-2);
+  outline-offset: 2px;
 }
 #root {
   max-width: 960px;

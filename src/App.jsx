@@ -289,29 +289,89 @@ export default function App() {
     fileInputRef.current?.click();
     toastInfo(`Elige de nuevo ${r.name} para continuar (los guardados se conservan).`);
   };
+  const onChangeGame = async () => {
+    try {
+      bridge.pause();
+    } catch {
+      /* sin juego corriendo, nada que pausar */
+    }
+    setPaused(true);
+    setFsMenuOpen(false);
+    setPseudoFs(false);
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+    } catch {
+      /* salir de fullscreen es best-effort */
+    }
+    setStatus('idle');
+    setBooted(false);
+  };
 
   return (
-    <main className="shell">
-      <header className="topbar">
-        <div>
-          <h1>NeroGBA</h1>
-          <p className="sub">
-            {romName ? `${romName} · ${system} · ${fps} fps${turbo > 1 ? ` · Turbo ${turbo}x` : ''}` : 'Carga un .gba local para jugar en el núcleo mGBA-WASM'}
-          </p>
-        </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".gba,.gb,.gbc,.sgb,.zip"
-          onChange={(e) => {
-            if (e.target.files?.[0]) handleFile(e.target.files[0]);
-            e.target.value = '';
-          }}
-        />
-      </header>
+    <main
+      className="shell"
+      onDragOver={!booted ? (e) => e.preventDefault() : undefined}
+      onDrop={
+        !booted
+          ? (e) => {
+              e.preventDefault();
+              const f = e.dataTransfer.files?.[0];
+              if (f) handleFile(f);
+            }
+          : undefined
+      }
+    >
+      {!booted ? (
+        <header className="topbar loader-head">
+          <div>
+            <h1>NeroGBA</h1>
+            <p className="sub">Exposición Blue Period · emulador GBA en el navegador (mGBA-WASM)</p>
+          </div>
+        </header>
+      ) : (
+        <header className="topbar">
+          <div>
+            <h1>NeroGBA</h1>
+            <p className="sub">
+              {romName ? `${romName} · ${system} · ${fps} fps${turbo > 1 ? ` · Turbo ${turbo}x` : ''}` : 'Carga un .gba local para jugar en el núcleo mGBA-WASM'}
+            </p>
+          </div>
+          <button type="button" onClick={onChangeGame}>
+            Cambiar juego
+          </button>
+        </header>
+      )}
+      {/* Input ROM único, siempre montado */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".gba,.gb,.gbc,.sgb,.zip"
+        hidden
+        onChange={(e) => {
+          if (e.target.files?.[0]) handleFile(e.target.files[0]);
+          e.target.value = '';
+        }}
+      />
 
-      <div ref={stageRef} className={`fs-wrap${pseudoFs ? ' pseudo-fullscreen' : ''}`}>
-        <Screen canvasRef={canvasRef} status={status} onDropFile={handleFile} />
+      {/* El Screen/canvas vive siempre aquí para no desmontarlo:
+          en carga se oculta por CSS (.is-loader) y el boot lo reutiliza. */}
+      <div ref={stageRef} className={`fs-wrap${pseudoFs ? ' pseudo-fullscreen' : ''}${!booted ? ' is-loader' : ''}`}>
+        {!booted && (
+          <section className="loader-hero" aria-label="Cargar juego">
+            <p className="loader-kicker">Sala 01 · Carga tu cartucho</p>
+            <h2>{status === 'loading' ? 'Colgando el lienzo…' : 'Elige tu obra para empezar'}</h2>
+            <p className="loader-sub">
+              {status === 'loading'
+                ? 'Arrancando el núcleo mGBA…'
+                : 'Arrastra un .gba aquí o elígelo desde tu dispositivo. Solo dumps propios, todo queda en local.'}
+            </p>
+            <button type="button" className="load-btn" onClick={() => fileInputRef.current?.click()} disabled={status === 'loading'}>
+              {status === 'loading' ? 'Cargando…' : 'Elegir juego'}
+            </button>
+            <p className="formats">.gba · .gb · .gbc · .sgb · .zip</p>
+          </section>
+        )}
+        <Screen canvasRef={canvasRef} status={booted ? status : 'idle'} onDropFile={handleFile} />
 
         {booted && <TouchControls keymap={keymap} />}
 
@@ -379,86 +439,102 @@ export default function App() {
         </section>
       )}
 
-      <ControlsBar
-        booted={booted}
-        paused={paused}
-        turbo={turbo}
-        muted={muted}
-        fullscreen={fullscreenActive}
-        onPause={handlePause}
-        onResume={handleResume}
-        onReset={() => bridge.reset()}
-        onTurbo={onTurbo}
-        onScreenshot={() => bridge.screenshot().catch((e) => toastError(e.message))}
-        onToggleMute={onToggleMute}
-        onFullscreen={onFullscreen}
-        onOpenSettings={() => setSettingsOpen(true)}
-      />
+      {booted && (
+        <>
+          <ControlsBar
+            booted={booted}
+            paused={paused}
+            turbo={turbo}
+            muted={muted}
+            fullscreen={fullscreenActive}
+            onPause={handlePause}
+            onResume={handleResume}
+            onReset={() => bridge.reset()}
+            onTurbo={onTurbo}
+            onScreenshot={() => bridge.screenshot().catch((e) => toastError(e.message))}
+            onToggleMute={onToggleMute}
+            onFullscreen={onFullscreen}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
 
-      <section className="controls">
-        <label>
-          Slot
-          <select value={slot} onChange={(e) => setSlot(Number(e.target.value))}>
-            {SLOTS.map((s) => (
-              <option key={s} value={s}>
-                {s} {slotsUsed[s] ? '●' : '○'}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button type="button" onClick={onSave}>
-          Guardar
-        </button>
-        <button type="button" onClick={onLoad}>
-          Cargar
-        </button>
-        <button type="button" onClick={onDelete}>
-          Borrar
-        </button>
-        <button type="button" onClick={onExport}>
-          Exportar
-        </button>
-        <button type="button" onClick={() => importInputRef.current?.click()}>
-          Importar
-        </button>
-        <input
-          ref={importInputRef}
-          type="file"
-          accept=".state,.bin,application/octet-stream"
-          hidden
-          onChange={(e) => {
-            if (e.target.files?.[0]) onImportFile(e.target.files[0]);
-            e.target.value = '';
-          }}
-        />
-      </section>
+          <section className="controls">
+            <label>
+              Slot
+              <select value={slot} onChange={(e) => setSlot(Number(e.target.value))}>
+                {SLOTS.map((s) => (
+                  <option key={s} value={s}>
+                    {s} {slotsUsed[s] ? '●' : '○'}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="button" onClick={onSave}>
+              Guardar
+            </button>
+            <button type="button" onClick={onLoad}>
+              Cargar
+            </button>
+            <button type="button" onClick={onDelete}>
+              Borrar
+            </button>
+            <button type="button" onClick={onExport}>
+              Exportar
+            </button>
+            <button type="button" onClick={() => importInputRef.current?.click()}>
+              Importar
+            </button>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".state,.bin,application/octet-stream"
+              hidden
+              onChange={(e) => {
+                if (e.target.files?.[0]) onImportFile(e.target.files[0]);
+                e.target.value = '';
+              }}
+            />
+          </section>
 
-      <section className="controls" aria-label="Batería SRAM">
-        <h2>Batería (.sav)</h2>
-        <button type="button" onClick={onExportSav}>
-          Exportar .sav
-        </button>
-        <button type="button" onClick={() => savInputRef.current?.click()}>
-          Importar .sav
-        </button>
-        <input
-          ref={savInputRef}
-          type="file"
-          accept=".sav,.bin,application/octet-stream"
-          hidden
-          onChange={(e) => {
-            if (e.target.files?.[0]) onImportSavFile(e.target.files[0]);
-            e.target.value = '';
-          }}
-        />
-      </section>
+          <section className="controls" aria-label="Batería SRAM">
+            <h2>Batería (.sav)</h2>
+            <button type="button" onClick={onExportSav}>
+              Exportar .sav
+            </button>
+            <button type="button" onClick={() => savInputRef.current?.click()}>
+              Importar .sav
+            </button>
+            <input
+              ref={savInputRef}
+              type="file"
+              accept=".sav,.bin,application/octet-stream"
+              hidden
+              onChange={(e) => {
+                if (e.target.files?.[0]) onImportSavFile(e.target.files[0]);
+                e.target.value = '';
+              }}
+            />
+          </section>
+        </>
+      )}
 
       <footer className="help">
-        <p>
-          Gamepad standard funciona solo. Sin BIOS se usa el reemplazo HLE. SRAM de batería la
-          persiste el núcleo en OPFS cada 15s (exportable como .sav).
-        </p>
-        <p className="legal">Usa solo dumps propios. No se incluye ninguna ROM con copyright.</p>
+        {!booted ? (
+          <>
+            <p>
+              Tus dumps nunca salen del dispositivo. Sin BIOS se usa el reemplazo HLE del núcleo
+              mGBA-WASM.
+            </p>
+            <p className="legal">Usa solo dumps propios. No se incluye ninguna ROM con copyright.</p>
+          </>
+        ) : (
+          <>
+            <p>
+              Gamepad standard funciona solo. Sin BIOS se usa el reemplazo HLE. SRAM de batería la
+              persiste el núcleo en OPFS cada 15s (exportable como .sav).
+            </p>
+            <p className="legal">Usa solo dumps propios. No se incluye ninguna ROM con copyright.</p>
+          </>
+        )}
       </footer>
     </main>
   );
