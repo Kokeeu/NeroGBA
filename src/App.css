@@ -37,16 +37,14 @@
   gap: 8px;
   font-weight: 800;
 }
-.topbar h1::before {
-  content: "❄";
+.topbar h1 .logo {
   width: 28px;
   height: 28px;
-  display: grid;
-  place-items: center;
+  display: block;
   border-radius: 50%;
-  background: linear-gradient(180deg, #fff, var(--accent-2));
+  object-fit: cover;
   border: 1px solid var(--stroke);
-  font-size: 15px;
+  background: #fff;
 }
 .sub {
   color: var(--muted);
@@ -143,6 +141,10 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 12px;
   align-items: stretch;
+}
+/* En el menú de carga no hay docks laterales: una sola columna centrada. */
+.desktop.is-loader {
+  grid-template-columns: minmax(0, 1fr);
 }
 /* Columnas laterales: pilas de docks verticales en espejo.
    stretch + height 100% => ambas pilas miden lo mismo que el stage;

@@ -23,6 +23,12 @@ export default defineConfig({
         start_url: './',
         icons: [
           {
+            src: 'nero-icon.png',
+            sizes: '256x256',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
             src: 'pwa-icon.svg',
             sizes: 'any',
             type: 'image/svg+xml',

@@ -14,6 +14,7 @@ import {
 import { exportSlot, importSlot, SLOTS } from './emulator/storage.js';
 import { addRecent, clearRecents, getRecents } from './emulator/recents.js';
 import { getKeymap, setKeymap } from './emulator/input/keyboard.js';
+import logoUrl from './assets/nero-icon.jpg';
 import './App.css';
 
 const NOTICE_MS = 4500;
@@ -330,7 +331,7 @@ export default function App() {
       {/* Waybar superior estilo ricing */}
       <header className="topbar" aria-label="Barra de estado">
         <div className="wb-left">
-          <h1>NeroGBA</h1>
+          <h1><img src={logoUrl} alt="" className="logo" aria-hidden="true" />NeroGBA</h1>
           <div className="ws-group" role="status" aria-label="Pantalla actual">
             <span className={`ws${!booted ? ' active' : ''}`}>01 carga</span>
             <span className={`ws${booted ? ' active' : ''}`}>02 juego</span>
@@ -365,8 +366,10 @@ export default function App() {
         }}
       />
 
-      <div className="desktop">
-        {/* Columna lateral izq: transporte del juego + sistema */}
+      <div className={`desktop${!booted ? ' is-loader' : ''}`}>
+        {/* Columna lateral izq: transporte del juego + sistema.
+            Se oculta en el menú de carga para no mostrar controles deshabilitados. */}
+        {booted && (
         <div className="side-stack left">
           <aside className="dock" aria-label="Transporte del juego">
             <span className="dock-label">juego</span>
@@ -435,6 +438,7 @@ export default function App() {
             />
           </aside>
         </div>
+        )}
 
         {/* El Screen/canvas vive siempre aquí para no desmontarlo:
             en carga se oculta por CSS (.is-loader) y el boot lo reutiliza. */}
@@ -517,7 +521,9 @@ export default function App() {
           />
         </div>
 
-        {/* Columna lateral der: video + slots + batería */}
+        {/* Columna lateral der: video + slots + batería.
+            Se oculta en el menú de carga para no mostrar controles deshabilitados. */}
+        {booted && (
         <div className="side-stack right">
           <aside className="dock" aria-label="Ajustes de video">
             <span className="dock-label">video</span>
@@ -608,6 +614,7 @@ export default function App() {
             />
           </aside>
         </div>
+        )}
       </div>
 
       {!booted && recents.length > 0 && (
