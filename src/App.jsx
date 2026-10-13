@@ -3,6 +3,7 @@ import { EmulatorBridge, TURBO_LEVELS, getDisplayPrefs, setDisplayPrefs } from '
 import Screen from './components/Screen.jsx';
 import ControlsBar from './components/ControlsBar.jsx';
 import TouchControls from './components/TouchControls.jsx';
+import FsMenu from './components/FsMenu.jsx';
 import Toasts from './components/Toasts.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
 import {
@@ -46,8 +47,10 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [pseudoFs, setPseudoFs] = useState(false);
+  const [fsMenuOpen, setFsMenuOpen] = useState(false);
   const [recents, setRecents] = useState(getRecents);
   const fullscreenActive = fullscreen || pseudoFs;
+  const closeFsMenu = useCallback(() => setFsMenuOpen(false), []);
 
   const dismissToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -79,7 +82,11 @@ export default function App() {
   useEffect(() => () => bridge?.destroy(), [bridge]);
 
   useEffect(() => {
-    const onFs = () => setFullscreen(!!document.fullscreenElement);
+    const onFs = () => {
+      const active = !!document.fullscreenElement;
+      setFullscreen(active);
+      if (!active) setFsMenuOpen(false);
+    };
     document.addEventListener('fullscreenchange', onFs);
     return () => document.removeEventListener('fullscreenchange', onFs);
   }, []);
@@ -107,6 +114,7 @@ export default function App() {
   const handleFile = useCallback(
     async (file) => {
       setToasts([]);
+      setFsMenuOpen(false);
       const err = validateRomFile(file);
       if (err) {
         toastError(err);
@@ -173,11 +181,13 @@ export default function App() {
     // Salir: tanto de Fullscreen API como del fallback iOS (pseudo).
     if (pseudoFs) {
       setPseudoFs(false);
+      setFsMenuOpen(false);
       return;
     }
     try {
       if (document.fullscreenElement) {
         await document.exitFullscreen();
+        setFsMenuOpen(false);
         return;
       }
       const el = stageRef.current;
@@ -204,6 +214,14 @@ export default function App() {
       return false;
     }
     return true;
+  };
+  const handlePause = () => {
+    bridge.pause();
+    setPaused(true);
+  };
+  const handleResume = () => {
+    bridge.resume();
+    setPaused(false);
   };
 
   const onSave = async () => {
@@ -298,13 +316,54 @@ export default function App() {
         {booted && <TouchControls keymap={keymap} />}
 
         {fullscreenActive && (
-          <button type="button" className="fs-exit" onClick={onFullscreen} aria-label="Salir de pantalla completa">
-            Salir ⛶
-          </button>
+          <FsMenu
+            open={fsMenuOpen}
+            onToggle={() => setFsMenuOpen((v) => !v)}
+            onClose={closeFsMenu}
+            booted={booted}
+            paused={paused}
+            turbo={turbo}
+            muted={muted}
+            slot={slot}
+            slotsUsed={slotsUsed}
+            onSlotChange={setSlot}
+            onPause={handlePause}
+            onResume={handleResume}
+            onReset={() => bridge.reset()}
+            onTurbo={onTurbo}
+            onScreenshot={() => bridge.screenshot().catch((e) => toastError(e.message))}
+            onToggleMute={onToggleMute}
+            onFullscreen={onFullscreen}
+            onOpenSettings={() => {
+              setFsMenuOpen(false);
+              setSettingsOpen(true);
+            }}
+            onSave={onSave}
+            onLoad={onLoad}
+            onDelete={onDelete}
+            onExport={onExport}
+            onImportClick={() => importInputRef.current?.click()}
+          />
         )}
-      </div>
 
-      <Toasts toasts={toasts} onDismiss={dismissToast} />
+        <Toasts toasts={toasts} onDismiss={dismissToast} />
+
+        <SettingsModal
+          open={settingsOpen}
+          onClose={() => {
+            setSettingsOpen(false);
+            setRebinding(null);
+          }}
+          keymap={keymap}
+          rebinding={rebinding}
+          onRebind={setRebinding}
+          onKeymapReset={onKeymapReset}
+          volume={muted ? 0 : volume}
+          onVolume={onVolume}
+          display={display}
+          onDisplay={onDisplay}
+        />
+      </div>
 
       {!booted && recents.length > 0 && (
         <section className="controls recents" aria-label="ROMs recientes">
@@ -326,14 +385,8 @@ export default function App() {
         turbo={turbo}
         muted={muted}
         fullscreen={fullscreenActive}
-        onPause={() => {
-          bridge.pause();
-          setPaused(true);
-        }}
-        onResume={() => {
-          bridge.resume();
-          setPaused(false);
-        }}
+        onPause={handlePause}
+        onResume={handleResume}
         onReset={() => bridge.reset()}
         onTurbo={onTurbo}
         onScreenshot={() => bridge.screenshot().catch((e) => toastError(e.message))}
@@ -399,22 +452,6 @@ export default function App() {
           }}
         />
       </section>
-
-      <SettingsModal
-        open={settingsOpen}
-        onClose={() => {
-          setSettingsOpen(false);
-          setRebinding(null);
-        }}
-        keymap={keymap}
-        rebinding={rebinding}
-        onRebind={setRebinding}
-        onKeymapReset={onKeymapReset}
-        volume={muted ? 0 : volume}
-        onVolume={onVolume}
-        display={display}
-        onDisplay={onDisplay}
-      />
 
       <footer className="help">
         <p>

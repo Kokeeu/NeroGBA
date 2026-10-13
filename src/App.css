@@ -295,26 +295,118 @@
   width: min(100vw, calc(100vh * 1.5));
   max-height: 100vh;
 }
-/* Botón flotante para salir (la ControlsBar queda fuera del fullscreen) */
-.fs-exit {
-  display: none;
+/* Menú flotante fullscreen (dentro de .fs-wrap para que se vea
+   en Fullscreen API nativa + fallback iOS). Sin .sav a propósito. */
+.fs-menu {
   position: absolute;
   top: calc(8px + env(safe-area-inset-top));
-  right: 8px;
-  z-index: 6;
+  left: 8px;
+  z-index: 20;
+  display: none;
+}
+.fs-wrap:fullscreen .fs-menu,
+.fs-wrap.pseudo-fullscreen .fs-menu {
+  display: block;
+}
+.fs-menu-btn {
   background: rgba(20, 26, 38, 0.65);
   color: #fff;
   border: 1px solid var(--accent);
   border-radius: 8px;
-  padding: 8px 12px;
-  min-height: 44px;
   min-width: 44px;
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 18px;
   cursor: pointer;
-  opacity: 0.85;
+  opacity: 0.9;
 }
-.fs-wrap:fullscreen .fs-exit,
-.fs-wrap.pseudo-fullscreen .fs-exit {
-  display: block;
+.fs-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.45);
+}
+.fs-menu-panel {
+  position: fixed;
+  top: calc(60px + env(safe-area-inset-top));
+  left: 8px;
+  right: 8px;
+  z-index: 21;
+  background: rgba(17, 22, 33, 0.97);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  width: min(calc(100vw - 16px), 420px);
+}
+.fs-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fs-sec h3 {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.fs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.fs-grid button {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px 10px;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.fs-grid button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.fs-grid button.fs-leave {
+  background: #232c3f;
+  border: 1px solid var(--accent);
+}
+.fs-slotrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.fs-slotrow select {
+  flex: 1;
+  background: #0b0e14;
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px;
+  min-height: 44px;
+}
+/* Toasts y modal dentro del fullscreen: deben pintarse sobre el juego */
+.fs-wrap:fullscreen .toasts,
+.fs-wrap.pseudo-fullscreen .toasts {
+  position: absolute;
+  top: calc(60px + env(safe-area-inset-top));
+  left: 8px;
+  right: 8px;
+  z-index: 30;
+}
+.fs-wrap:fullscreen .modal-backdrop,
+.fs-wrap.pseudo-fullscreen .modal-backdrop {
+  position: absolute;
+  z-index: 40;
 }
 
 /* Compat: si algún navegador pide fullscreen directo sobre .stage */
