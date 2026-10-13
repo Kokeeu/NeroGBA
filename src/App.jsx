@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EmulatorBridge, TURBO_LEVELS, getDisplayPrefs, setDisplayPrefs } from './emulator/EmulatorBridge.js';
 import Screen from './components/Screen.jsx';
-import ControlsBar from './components/ControlsBar.jsx';
 import TouchControls from './components/TouchControls.jsx';
 import FsMenu from './components/FsMenu.jsx';
 import Toasts from './components/Toasts.jsx';
@@ -50,6 +49,9 @@ export default function App() {
   const [fsMenuOpen, setFsMenuOpen] = useState(false);
   const [recents, setRecents] = useState(getRecents);
   const fullscreenActive = fullscreen || pseudoFs;
+  // El ☰ vive en la fila táctil cuando hay fullscreen; en desktop la fila
+  // está oculta por CSS y queda el flotante. Cuál se ve lo decide solo CSS
+  // (pointer:coarse) para no desincronizar JS y media queries.
   const closeFsMenu = useCallback(() => setFsMenuOpen(false), []);
 
   const dismissToast = useCallback((id) => {
@@ -307,6 +309,10 @@ export default function App() {
     setBooted(false);
   };
 
+  const statusText = booted
+    ? `${romName} · ${system} · ${fps} fps${turbo > 1 ? ` · Turbo ${turbo}x` : ''}${paused ? ' · paused' : ''}`
+    : 'Carga un .gba local para jugar en el núcleo mGBA-WASM';
+
   return (
     <main
       className="shell"
@@ -321,26 +327,32 @@ export default function App() {
           : undefined
       }
     >
-      {!booted ? (
-        <header className="topbar loader-head">
-          <div>
-            <h1>NeroGBA</h1>
-            <p className="sub">Exposición Blue Period · emulador GBA en el navegador (mGBA-WASM)</p>
+      {/* Waybar superior estilo ricing */}
+      <header className="topbar" aria-label="Barra de estado">
+        <div className="wb-left">
+          <h1>NeroGBA</h1>
+          <div className="ws-group" role="status" aria-label="Pantalla actual">
+            <span className={`ws${!booted ? ' active' : ''}`}>01 carga</span>
+            <span className={`ws${booted ? ' active' : ''}`}>02 juego</span>
           </div>
-        </header>
-      ) : (
-        <header className="topbar">
-          <div>
-            <h1>NeroGBA</h1>
-            <p className="sub">
-              {romName ? `${romName} · ${system} · ${fps} fps${turbo > 1 ? ` · Turbo ${turbo}x` : ''}` : 'Carga un .gba local para jugar en el núcleo mGBA-WASM'}
-            </p>
-          </div>
-          <button type="button" onClick={onChangeGame}>
-            Cambiar juego
+        </div>
+        <div className="wb-center">
+          <span className="wb-status" title={statusText}>
+            {statusText}
+          </span>
+        </div>
+        <div className="wb-right tray">
+          {booted && (
+            <button type="button" onClick={onChangeGame} title="Volver a la pantalla de carga">
+              Cambiar juego
+            </button>
+          )}
+          <button type="button" onClick={() => setSettingsOpen(true)} title="Abrir ajustes">
+            ⚙
           </button>
-        </header>
-      )}
+        </div>
+      </header>
+
       {/* Input ROM único, siempre montado */}
       <input
         ref={fileInputRef}
@@ -353,134 +365,62 @@ export default function App() {
         }}
       />
 
-      {/* El Screen/canvas vive siempre aquí para no desmontarlo:
-          en carga se oculta por CSS (.is-loader) y el boot lo reutiliza. */}
-      <div ref={stageRef} className={`fs-wrap${pseudoFs ? ' pseudo-fullscreen' : ''}${!booted ? ' is-loader' : ''}`}>
-        {!booted && (
-          <section className="loader-hero" aria-label="Cargar juego">
-            <p className="loader-kicker">Sala 01 · Carga tu cartucho</p>
-            <h2>{status === 'loading' ? 'Colgando el lienzo…' : 'Elige tu obra para empezar'}</h2>
-            <p className="loader-sub">
-              {status === 'loading'
-                ? 'Arrancando el núcleo mGBA…'
-                : 'Arrastra un .gba aquí o elígelo desde tu dispositivo. Solo dumps propios, todo queda en local.'}
-            </p>
-            <button type="button" className="load-btn" onClick={() => fileInputRef.current?.click()} disabled={status === 'loading'}>
-              {status === 'loading' ? 'Cargando…' : 'Elegir juego'}
+      <div className="desktop">
+        {/* Columna lateral izq: transporte del juego + sistema */}
+        <div className="side-stack left">
+          <aside className="dock" aria-label="Transporte del juego">
+            <span className="dock-label">juego</span>
+            {paused ? (
+              <button type="button" disabled={!booted || !paused} onClick={handleResume} title="Seguir" aria-label="Seguir">
+                ▶
+              </button>
+            ) : (
+              <button type="button" disabled={!booted || paused} onClick={handlePause} title="Pausa" aria-label="Pausa">
+                ⏸
+              </button>
+            )}
+            <button type="button" disabled={!booted} onClick={() => bridge.reset()} title="Reset" aria-label="Reset">
+              ⟲
             </button>
-            <p className="formats">.gba · .gb · .gbc · .sgb · .zip</p>
-          </section>
-        )}
-        <Screen canvasRef={canvasRef} status={booted ? status : 'idle'} onDropFile={handleFile} />
-
-        {booted && <TouchControls keymap={keymap} turbo={turbo} onTurbo={onTurbo} />}
-
-        {fullscreenActive && (
-          <FsMenu
-            open={fsMenuOpen}
-            onToggle={() => setFsMenuOpen((v) => !v)}
-            onClose={closeFsMenu}
-            booted={booted}
-            paused={paused}
-            turbo={turbo}
-            muted={muted}
-            slot={slot}
-            slotsUsed={slotsUsed}
-            onSlotChange={setSlot}
-            onPause={handlePause}
-            onResume={handleResume}
-            onReset={() => bridge.reset()}
-            onTurbo={onTurbo}
-            onScreenshot={() => bridge.screenshot().catch((e) => toastError(e.message))}
-            onToggleMute={onToggleMute}
-            onFullscreen={onFullscreen}
-            onOpenSettings={() => {
-              setFsMenuOpen(false);
-              setSettingsOpen(true);
-            }}
-            onSave={onSave}
-            onLoad={onLoad}
-            onDelete={onDelete}
-            onExport={onExport}
-            onImportClick={() => importInputRef.current?.click()}
-          />
-        )}
-
-        <Toasts toasts={toasts} onDismiss={dismissToast} />
-
-        <SettingsModal
-          open={settingsOpen}
-          onClose={() => {
-            setSettingsOpen(false);
-            setRebinding(null);
-          }}
-          keymap={keymap}
-          rebinding={rebinding}
-          onRebind={setRebinding}
-          onKeymapReset={onKeymapReset}
-          volume={muted ? 0 : volume}
-          onVolume={onVolume}
-          display={display}
-          onDisplay={onDisplay}
-        />
-      </div>
-
-      {!booted && recents.length > 0 && (
-        <section className="controls recents" aria-label="ROMs recientes">
-          <h2>Recientes</h2>
-          {recents.map((r) => (
-            <button key={r.namespace} type="button" onClick={() => onRecent(r)} title={r.system || ''}>
-              {r.name}
+            <button
+              type="button"
+              disabled={!booted}
+              onClick={() => bridge.screenshot().catch((e) => toastError(e.message))}
+              title="Screenshot"
+              aria-label="Screenshot"
+            >
+              ◉
             </button>
-          ))}
-          <button type="button" className="linklike" onClick={() => setRecents(clearRecents())}>
-            Limpiar
-          </button>
-        </section>
-      )}
+          </aside>
 
-      {booted && (
-        <>
-          <ControlsBar
-            booted={booted}
-            paused={paused}
-            turbo={turbo}
-            muted={muted}
-            fullscreen={fullscreenActive}
-            onPause={handlePause}
-            onResume={handleResume}
-            onReset={() => bridge.reset()}
-            onTurbo={onTurbo}
-            onScreenshot={() => bridge.screenshot().catch((e) => toastError(e.message))}
-            onToggleMute={onToggleMute}
-            onFullscreen={onFullscreen}
-            onOpenSettings={() => setSettingsOpen(true)}
-          />
-
-          <section className="controls">
-            <label>
-              Slot
-              <select value={slot} onChange={(e) => setSlot(Number(e.target.value))}>
-                {SLOTS.map((s) => (
-                  <option key={s} value={s}>
-                    {s} {slotsUsed[s] ? '●' : '○'}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="button" onClick={onSave}>
+          <aside className="dock" aria-label="Slots de guardado">
+            <span className="dock-label">slots</span>
+            <select
+              value={slot}
+              disabled={!booted}
+              onChange={(e) => setSlot(Number(e.target.value))}
+              aria-label="Slot de guardado"
+              title="Slot de guardado"
+            >
+              {SLOTS.map((s) => (
+                <option key={s} value={s}>
+                  {s} {slotsUsed[s] ? '●' : '○'}
+                </option>
+              ))}
+            </select>
+            <button type="button" className="txt" disabled={!booted} onClick={onSave}>
               Guardar
             </button>
-            <button type="button" onClick={onLoad}>
+            <button type="button" className="txt" disabled={!booted} onClick={onLoad}>
               Cargar
             </button>
-            <button type="button" onClick={onDelete}>
+            <button type="button" className="txt" disabled={!booted} onClick={onDelete}>
               Borrar
             </button>
-            <button type="button" onClick={onExport}>
+            <button type="button" className="txt" disabled={!booted} onClick={onExport}>
               Exportar
             </button>
-            <button type="button" onClick={() => importInputRef.current?.click()}>
+            <button type="button" className="txt" disabled={!booted} onClick={() => importInputRef.current?.click()}>
               Importar
             </button>
             <input
@@ -493,14 +433,167 @@ export default function App() {
                 e.target.value = '';
               }}
             />
-          </section>
+          </aside>
+        </div>
 
-          <section className="controls" aria-label="Batería SRAM">
-            <h2>Batería (.sav)</h2>
-            <button type="button" onClick={onExportSav}>
+        {/* El Screen/canvas vive siempre aquí para no desmontarlo:
+            en carga se oculta por CSS (.is-loader) y el boot lo reutiliza. */}
+        <div ref={stageRef} className={`fs-wrap${pseudoFs ? ' pseudo-fullscreen' : ''}${!booted ? ' is-loader' : ''}`}>
+          {!booted && (
+            <section className="loader-hero" aria-label="Cargar juego">
+              <p className="loader-kicker">Sala 01 · Carga tu cartucho · ❄ nerogba frost</p>
+              <h2>{status === 'loading' ? 'Colgando el lienzo…' : 'Elige tu obra para empezar'}</h2>
+              <p className="loader-sub">
+                {status === 'loading'
+                  ? 'Arrancando el núcleo mGBA…'
+                  : 'Arrastra un .gba aquí o elígelo desde tu dispositivo. Solo dumps propios, todo queda en local.'}
+              </p>
+              <button type="button" className="load-btn" onClick={() => fileInputRef.current?.click()} disabled={status === 'loading'}>
+                {status === 'loading' ? 'Cargando…' : 'Elegir juego'}
+              </button>
+              <p className="formats">.gba · .gb · .gbc · .sgb · .zip</p>
+            </section>
+          )}
+          <Screen canvasRef={canvasRef} status={booted ? status : 'idle'} onDropFile={handleFile} romName={romName} />
+
+          {booted && (
+            <TouchControls
+              keymap={keymap}
+              turbo={turbo}
+              onTurbo={onTurbo}
+              onMenu={() => setFsMenuOpen((v) => !v)}
+              menuOpen={fsMenuOpen}
+              showMenu={fullscreenActive}
+            />
+          )}
+
+          {fullscreenActive && (
+            <FsMenu
+              open={fsMenuOpen}
+              onToggle={() => setFsMenuOpen((v) => !v)}
+              onClose={closeFsMenu}
+              booted={booted}
+              paused={paused}
+              turbo={turbo}
+              muted={muted}
+              slot={slot}
+              slotsUsed={slotsUsed}
+              onSlotChange={setSlot}
+              onPause={handlePause}
+              onResume={handleResume}
+              onReset={() => bridge.reset()}
+              onTurbo={onTurbo}
+              onScreenshot={() => bridge.screenshot().catch((e) => toastError(e.message))}
+              onToggleMute={onToggleMute}
+              onFullscreen={onFullscreen}
+              onOpenSettings={() => {
+                setFsMenuOpen(false);
+                setSettingsOpen(true);
+              }}
+              onSave={onSave}
+              onLoad={onLoad}
+              onDelete={onDelete}
+              onExport={onExport}
+              onImportClick={() => importInputRef.current?.click()}
+            />
+          )}
+
+          <Toasts toasts={toasts} onDismiss={dismissToast} />
+
+          <SettingsModal
+            open={settingsOpen}
+            onClose={() => {
+              setSettingsOpen(false);
+              setRebinding(null);
+            }}
+            keymap={keymap}
+            rebinding={rebinding}
+            onRebind={setRebinding}
+            onKeymapReset={onKeymapReset}
+            volume={muted ? 0 : volume}
+            onVolume={onVolume}
+            display={display}
+            onDisplay={onDisplay}
+          />
+        </div>
+
+        {/* Columna lateral der: video + slots + batería */}
+        <div className="side-stack right">
+          <aside className="dock" aria-label="Ajustes de video">
+            <span className="dock-label">video</span>
+            <button
+              type="button"
+              disabled={!booted}
+              onClick={onTurbo}
+              aria-pressed={turbo > 1}
+              className={`pill-toggle${turbo > 1 ? ' on' : ''}`}
+              title={turbo > 1 ? `Turbo ${turbo}x activo (sin audio)` : 'Activar turbo'}
+            >
+              {turbo > 1 ? `${turbo}x` : '1x'}
+            </button>
+            <button
+              type="button"
+              onClick={() => onDisplay('renderFilter', display.renderFilter === 'pixelated' ? 'smooth' : 'pixelated')}
+              title={`Filtro: ${display.renderFilter}`}
+              aria-label="Cambiar filtro"
+            >
+              ◐
+            </button>
+            <button
+              type="button"
+              onClick={() => onDisplay('aspect', display.aspect === 'native' ? '4:3' : 'native')}
+              title={`Aspecto: ${display.aspect}`}
+              aria-label="Cambiar aspecto"
+            >
+              ▭
+            </button>
+            <button
+              type="button"
+              onClick={() => onDisplay('interframeBlending', !display.interframeBlending)}
+              aria-pressed={!!display.interframeBlending}
+              title="Ghosting LCD"
+              aria-label="Ghosting LCD"
+            >
+              ◑
+            </button>
+          </aside>
+
+          <aside className="dock" aria-label="Sistema">
+            <span className="dock-label">sistema</span>
+            <button
+              type="button"
+              disabled={!booted}
+              onClick={onToggleMute}
+              aria-pressed={muted}
+              title={muted ? 'Activar audio' : 'Silenciar'}
+              aria-label={muted ? 'Activar audio' : 'Silenciar'}
+            >
+              {muted ? '♪̸' : '♪'}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={muted ? 0 : volume}
+              disabled={!booted}
+              onChange={(e) => onVolume(Number(e.target.value))}
+              aria-label="Volumen"
+              title="Volumen"
+            />
+            <button
+              type="button"
+              className="txt"
+              onClick={onFullscreen}
+              aria-pressed={fullscreenActive}
+              title="Pantalla completa del escenario"
+            >
+              {fullscreenActive ? 'Salir ⛶' : '⛶ Pantalla'}
+            </button>
+            <button type="button" className="txt" disabled={!booted} onClick={onExportSav}>
               Exportar .sav
             </button>
-            <button type="button" onClick={() => savInputRef.current?.click()}>
+            <button type="button" className="txt" disabled={!booted} onClick={() => savInputRef.current?.click()}>
               Importar .sav
             </button>
             <input
@@ -513,8 +606,22 @@ export default function App() {
                 e.target.value = '';
               }}
             />
-          </section>
-        </>
+          </aside>
+        </div>
+      </div>
+
+      {!booted && recents.length > 0 && (
+        <section className="controls recents" aria-label="ROMs recientes">
+          <h2>Recientes · dmenu</h2>
+          {recents.map((r) => (
+            <button key={r.namespace} type="button" onClick={() => onRecent(r)} title={r.system || ''}>
+              {r.name}
+            </button>
+          ))}
+          <button type="button" className="linklike" onClick={() => setRecents(clearRecents())}>
+            Limpiar
+          </button>
+        </section>
       )}
 
       <footer className="help">

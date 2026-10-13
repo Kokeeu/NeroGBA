@@ -1,93 +1,377 @@
-/* Blue Period — galería clara, pictórico total (solo CSS).
+/* NeroGBA Frost — celeste kawaii + ricing Linux (solo CSS, sin assets).
    Reglas de comportamiento intactas: z-index touch 5 < menú 20/21 <
-   toasts 30 < modal 40; targets 44px; coarse/fullscreen; safe-area. */
+   toasts 30 < modal 50; targets 44px; coarse/fullscreen; safe-area. */
 .shell {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  position: relative;
 }
+
+/* ============ WAYBAR (topbar ricing) ============ */
 .topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   background: var(--panel);
-  border: 1.5px solid var(--sumi);
-  border-bottom: 4px solid var(--cartel);
-  padding: 12px 16px;
-  border-radius: 6px 14px 6px 14px;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--glass-line);
+  outline: 1px solid var(--stroke);
+  padding: 8px 12px;
+  border-radius: 999px;
   flex-wrap: wrap;
-  box-shadow: 4px 4px 0 rgba(20, 24, 36, 0.9);
+  box-shadow: var(--glow);
+  position: sticky;
+  top: 8px;
+  z-index: 10;
 }
 .topbar h1 {
-  font-size: 22px;
+  font-size: 17px;
   margin: 0;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   display: flex;
   align-items: center;
-  gap: 10px;
-  /* Subrayado pincel bermellón */
-  background: linear-gradient(to top, rgba(224, 74, 31, 0.35) 22%, transparent 23%) 0 100% / 100% 1.1em no-repeat;
-  padding-bottom: 2px;
+  gap: 8px;
+  font-weight: 800;
 }
 .topbar h1::before {
-  content: "";
-  width: 12px;
-  height: 12px;
-  border-radius: 50% 46% 52% 48%;
-  background: var(--cartel);
-  border: 1.5px solid var(--sumi);
-  flex: none;
+  content: "❄";
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #fff, var(--accent-2));
+  border: 1px solid var(--stroke);
+  font-size: 15px;
 }
 .sub {
   color: var(--muted);
-  margin: 4px 0 0;
-  font-size: 13px;
+  margin: 2px 0 0;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+.wb-left,
+.wb-center,
+.wb-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.wb-center {
+  flex: 1;
+  justify-content: center;
+  text-align: center;
+}
+.ws-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  padding: 3px;
+}
+.ws {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  cursor: default;
+  white-space: nowrap;
+}
+.ws.active {
+  background: var(--text);
+  color: #fff;
+  border-color: var(--text);
+}
+.wb-status {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  padding: 6px 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: min(52vw, 560px);
+}
+.tray {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tray button,
+.topbar > button {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid var(--stroke);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  min-height: 36px;
+  font-size: 13px;
+  font-weight: 700;
+  transition: transform 80ms ease, background 120ms ease;
+}
+.tray button:hover,
+.topbar > button:hover {
+  background: #fff;
+}
+.tray button:active,
+.topbar > button:active {
+  transform: translateY(1px);
+}
+
+/* ============ DESKTOP GRID (docks + main) ============ */
+.desktop {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: stretch;
+}
+/* Columnas laterales: pilas de docks verticales en espejo.
+   stretch + height 100% => ambas pilas miden lo mismo que el stage;
+   el dock inferior (flex:1) absorbe el resto y los pares quedan alineados. */
+.side-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 108px;
+  min-width: 0;
+  position: sticky;
+  top: 68px;
+  max-height: calc(100vh - 84px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  align-self: stretch;
+  height: 100%;
+}
+.side-stack .dock {
+  position: static;
+  flex: 0 0 auto;
+}
+/* El dock inferior de cada pila crece para igualar la altura total */
+.side-stack .dock:last-child {
+  flex: 1 1 auto;
+}
+.dock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  background: var(--panel);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--glass-line);
+  outline: 1px solid var(--stroke);
+  border-radius: 22px;
+  padding: 10px 8px;
+  box-shadow: var(--glow);
+  position: sticky;
+  top: 68px;
+}
+.dock-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  text-align: center;
+  text-transform: uppercase;
+  font-family: ui-monospace, Menlo, monospace;
+}
+.dock button {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid var(--stroke);
+  color: var(--text);
+  border-radius: 16px;
+  min-height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  transition: transform 80ms ease, background 120ms ease;
+}
+.dock button:hover:not(:disabled) {
+  background: #fff;
+}
+.dock button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.dock button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.dock button[aria-pressed="true"],
+.dock button.on {
+  background: var(--text);
+  color: #fff;
+  border-color: var(--text);
+}
+.dock .pill-toggle {
+  border-radius: 999px;
+  font-size: 11px;
+  font-family: ui-monospace, Menlo, monospace;
+}
+/* Botones de texto en docks estrechos (slots/batería/sistema) */
+.dock button.txt {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.dock select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text);
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  padding: 8px 10px;
+  min-height: 44px;
+  font-weight: 700;
+  font-size: 13px;
+}
+.dock input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+  min-height: 44px;
+}
+/* Docks superiores en espejo solo con CSS (una columna, sin tocar JSX):
+   juego trae 3 botones y video 4, así que se iguala la altura mínima de
+   ambos al contenido del más alto. El valor cubre label + 4 botones
+   compactos + gaps; al aplicarse a los dos, quedan iguales aunque la
+   fuente varíe un poco. */
+.side-stack.left .dock:first-child,
+.side-stack.right .dock:first-child {
+  min-height: 196px;
+}
+/* Docks compactos solo en escritorio: las pilas deben caber dentro de la
+   altura de la ventana del juego (si el contenido supera a la ventana, la
+   fila crece y las columnas vuelven a sobresalir). El slack lo absorbe el
+   dock inferior (flex:1). En móvil se conservan los 44px táctiles. */
+@media (min-width: 901px) {
+  .side-stack .dock {
+    padding: 8px 6px;
+    gap: 6px;
+  }
+  .side-stack .dock button {
+    min-height: 38px;
+    min-width: 38px;
+    font-size: 14px;
+  }
+  /* Los de texto mantienen 12px para caber en la columna estrecha */
+  .side-stack .dock button.txt {
+    font-size: 12px;
+  }
+  .side-stack .dock select {
+    min-height: 38px;
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+  .side-stack .dock input[type="range"] {
+    min-height: 38px;
+  }
+}
+
+/* ============ STAGE VENTANA FLOTANTE ============ */
+.fs-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  min-width: 0;
+}
+.stage-window {
+  background: var(--lienzo);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--glass-line);
+  outline: 1px solid var(--stroke);
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: var(--glow);
+  position: relative;
+}
+.win-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--stroke);
+  background: rgba(255, 255, 255, 0.55);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+.win-dots {
+  display: flex;
+  gap: 6px;
+}
+.win-dots i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: block;
+  border: 1px solid rgba(15, 37, 64, 0.25);
+}
+.win-dots i:nth-child(1) { background: #ff8fc0; }
+.win-dots i:nth-child(2) { background: #7dd0f5; }
+.win-dots i:nth-child(3) { background: #fff; }
+.win-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .stage {
   position: relative;
-  background: var(--lienzo);
-  border: 2px solid var(--marco);
-  border-radius: 8px;
-  overflow: hidden;
+  background: #0a1626;
   display: flex;
   justify-content: center;
-  min-height: 320px;
-  padding: 22px;
-  box-shadow: 6px 6px 0 rgba(20, 24, 36, 0.9);
+  padding: 18px;
+  overflow: hidden;
 }
-/* Cinta bermellón de exposición en la esquina */
+/* Wallpaper tipográfico detrás del canvas (no toca el juego) */
 .stage::before {
-  content: "";
+  content: "LOVE";
   position: absolute;
-  top: 10px;
-  left: -34px;
-  width: 120px;
-  height: 22px;
-  z-index: 3;
-  background: linear-gradient(180deg, #ef5a28, var(--cartel));
-  border-top: 1px solid rgba(20, 24, 36, 0.4);
-  border-bottom: 1px solid rgba(20, 24, 36, 0.4);
-  transform: rotate(-38deg);
-  opacity: 0.9;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%) rotate(90deg);
+  transform-origin: center;
+  font-size: clamp(64px, 12vw, 120px);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.28);
   pointer-events: none;
+  z-index: 0;
 }
-/* Trama de lienzo sutil sobre el marco (no toca el canvas) */
 .stage::after {
-  content: "";
+  content: "NEROGBA · 03";
   position: absolute;
-  inset: 0;
-  z-index: 2;
+  left: 14px;
+  bottom: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: ui-monospace, Menlo, monospace;
   pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(20, 24, 36, 0.05) 0 1px,
-    transparent 1px 4px
-  );
-  opacity: 0.25;
+  z-index: 0;
 }
 .screen {
   width: min(100%, 720px);
@@ -95,11 +379,12 @@
   height: auto;
   image-rendering: pixelated;
   background: #000;
-  border-radius: 4px;
-  border: 3px solid var(--marco);
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  outline: 1px solid rgba(15, 37, 64, 0.35);
   position: relative;
   z-index: 1;
-  box-shadow: 0 0 0 4px var(--lienzo), 0 0 0 6px var(--marco);
+  box-shadow: 0 0 0 6px rgba(15, 37, 64, 0.85), 0 12px 40px rgba(30, 155, 215, 0.35);
 }
 .overlay {
   position: absolute;
@@ -107,71 +392,80 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.8);
   pointer-events: none;
   font-style: italic;
   letter-spacing: 0.02em;
   padding: 0 24px;
   text-align: center;
+  z-index: 1;
 }
-.notices .err {
-  color: var(--err);
-}
-.notices .warn {
-  color: var(--warn);
-}
+
+/* ============ PLAYERBAR + CONTROLS ============ */
 .controls {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
   align-items: center;
   background: var(--panel);
-  border: 1.5px solid var(--sumi);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--glass-line);
+  outline: 1px solid var(--stroke);
   padding: 12px;
-  border-radius: 6px 14px 6px 14px;
-  box-shadow: 4px 4px 0 rgba(20, 24, 36, 0.9);
+  border-radius: 22px;
+  box-shadow: var(--glow);
 }
 .controls button {
-  background: linear-gradient(180deg, var(--accent-2), var(--accent));
-  border: 1.5px solid var(--sumi);
-  border-bottom-width: 3px;
-  color: #fff;
-  padding: 8px 12px;
-  border-radius: 8px 10px 8px 10px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--stroke);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 999px;
   cursor: pointer;
   min-height: 44px;
-  transition: transform 60ms ease, filter 120ms ease;
+  font-weight: 700;
+  font-size: 14px;
+  transition: transform 80ms ease, background 120ms ease;
 }
 .controls button:hover:not(:disabled) {
-  filter: brightness(1.1);
+  background: #fff;
 }
 .controls button:active:not(:disabled) {
-  transform: translateY(2px);
-  border-bottom-width: 1px;
+  transform: translateY(1px);
 }
 .controls button:disabled {
   opacity: 0.4;
   cursor: default;
 }
-.controls button[aria-pressed="true"] {
-  background: linear-gradient(180deg, #ef5a28, var(--cartel));
+.controls button[aria-pressed="true"],
+.controls button.primary {
+  background: var(--text);
   color: #fff;
-  border-color: var(--sumi);
+  border-color: var(--text);
+}
+.controls button.accent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 .controls select {
-  background: var(--lienzo);
+  background: rgba(255, 255, 255, 0.85);
   color: var(--text);
-  border: 1.5px solid var(--sumi);
-  border-bottom-width: 3px;
-  border-radius: 6px;
-  padding: 8px;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  padding: 8px 10px;
   margin-left: 8px;
   min-height: 44px;
+  font-weight: 700;
 }
 .controls label {
   display: flex;
   align-items: center;
   gap: 4px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 13px;
+  color: var(--muted);
 }
 .keymap h2 {
   width: 100%;
@@ -185,7 +479,7 @@
   font-size: 14px;
 }
 .controls button.rebind {
-  outline: 3px solid var(--cartel);
+  outline: 3px solid var(--pink);
 }
 .vol {
   display: flex;
@@ -193,16 +487,19 @@
   gap: 8px;
   margin-left: auto;
   color: var(--muted);
+  font-size: 13px;
 }
 .help {
   color: var(--muted);
   font-size: 13px;
+  text-align: center;
+  font-family: ui-monospace, Menlo, monospace;
 }
 .legal {
   margin-top: 4px;
 }
 
-/* Toasts */
+/* Toasts como speech-bubbles CUTE! */
 .toasts {
   display: flex;
   flex-direction: column;
@@ -214,41 +511,59 @@
   align-items: center;
   gap: 12px;
   padding: 10px 12px 10px 14px;
-  border-radius: 6px 12px 6px 12px;
-  background: var(--panel);
-  border: 1.5px solid var(--sumi);
-  border-left: 5px solid var(--accent);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--stroke);
   font-size: 14px;
-  box-shadow: 3px 3px 0 rgba(20, 24, 36, 0.85);
+  box-shadow: var(--glow);
+  position: relative;
+  font-weight: 600;
+}
+.toast::after {
+  content: "";
+  position: absolute;
+  left: 22px;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  background: inherit;
+  border-right: 1px solid var(--stroke);
+  border-bottom: 1px solid var(--stroke);
+  transform: rotate(45deg);
+}
+.toast-info {
+  border-top: 3px solid var(--accent-2);
 }
 .toast-error {
-  border-color: var(--sumi);
-  border-left: 5px solid var(--err);
+  border-top: 3px solid var(--err);
+  color: var(--err);
 }
 .toast button {
-  background: transparent;
+  background: var(--text);
   border: none;
-  color: var(--muted);
-  font-size: 18px;
+  color: #fff;
+  font-size: 14px;
   cursor: pointer;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 50%;
 }
 
-/* Recents + section titles */
+/* Recents como launcher dmenu */
 .recents h2,
 .controls h2 {
   width: 100%;
-  font-size: 12px;
+  font-size: 11px;
   margin: 0;
   color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.14em;
+  font-family: ui-monospace, Menlo, monospace;
 }
 .recents button:not(.linklike) {
-  background: linear-gradient(180deg, var(--lienzo), #ece4d2);
+  background: rgba(255, 255, 255, 0.8);
   color: var(--text);
-  border: 1.5px solid var(--sumi);
+  border: 1px solid var(--stroke);
 }
 .controls button.linklike,
 .linklike {
@@ -256,18 +571,21 @@
   border: none;
   color: var(--accent);
   text-decoration: underline;
-  text-decoration-color: var(--cartel);
+  text-decoration-color: var(--pink);
   text-underline-offset: 3px;
   cursor: pointer;
   min-height: 44px;
   padding: 8px 12px;
+  font-weight: 700;
 }
 
-/* Settings modal */
+/* Settings modal frost */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(20, 24, 36, 0.55);
+  background: rgba(15, 37, 64, 0.4);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -275,10 +593,11 @@
   padding: 16px;
 }
 .modal {
-  background: var(--panel);
-  border: 2px solid var(--sumi);
-  border-top: 5px solid var(--cartel);
-  border-radius: 8px 16px 8px 16px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--glass-line);
+  outline: 1px solid var(--stroke);
+  border-top: 4px solid var(--accent-2);
+  border-radius: 22px;
   padding: 16px;
   width: min(100%, 560px);
   max-height: 85vh;
@@ -286,29 +605,30 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  box-shadow: 6px 6px 0 rgba(20, 24, 36, 0.9);
+  box-shadow: var(--glow);
 }
 .modal-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1.5px solid var(--sumi);
+  border-bottom: 1px solid var(--stroke);
   padding-bottom: 8px;
 }
 .modal-head h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
 }
 .modal-head button {
-  background: transparent;
+  background: var(--text);
   border: none;
-  color: var(--text);
-  font-size: 24px;
+  color: #fff;
+  font-size: 18px;
   cursor: pointer;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 50%;
 }
 .modal-sec {
   display: flex;
@@ -317,10 +637,11 @@
 }
 .modal-sec h3 {
   margin: 0;
-  font-size: 12px;
-  color: var(--cartel);
+  font-size: 11px;
+  color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.14em;
+  font-family: ui-monospace, Menlo, monospace;
 }
 .modal-sec label {
   display: flex;
@@ -328,11 +649,11 @@
   gap: 8px;
 }
 .modal-sec select {
-  background: var(--lienzo);
+  background: #fff;
   color: var(--text);
-  border: 1.5px solid var(--sumi);
-  border-radius: 6px;
-  padding: 8px;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  padding: 8px 10px;
   min-height: 44px;
 }
 .keygrid {
@@ -345,25 +666,21 @@
   min-height: 44px;
 }
 .keygrid button {
-  background: var(--lienzo);
-  border: 1.5px solid var(--accent);
-  border-bottom-width: 3px;
+  background: #fff;
+  border: 1px solid var(--stroke);
   color: var(--text);
-  border-radius: 8px;
+  border-radius: 14px;
   padding: 8px;
   cursor: pointer;
-}
-.keygrid button:active {
-  transform: translateY(1px);
-  border-bottom-width: 1px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 13px;
 }
 .keygrid button.rebind {
-  outline: 3px solid var(--cartel);
+  outline: 3px solid var(--pink);
 }
 
-/* Pantalla de carga: el stage/canvas sigue montado (el boot lo necesita)
-   pero oculto; el hero ocupa su lugar. */
-.fs-wrap.is-loader .stage {
+/* Loader hero frost */
+.fs-wrap.is-loader .stage-window {
   display: none;
 }
 .loader-head {
@@ -371,45 +688,61 @@
 }
 .loader-hero {
   background: var(--panel);
-  border: 2px solid var(--sumi);
-  border-top: 5px solid var(--cartel);
-  border-radius: 8px 18px 8px 18px;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--glass-line);
+  outline: 1px solid var(--stroke);
+  border-radius: 24px;
   padding: clamp(24px, 5vw, 48px) clamp(18px, 4vw, 40px);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
-  box-shadow: 6px 6px 0 rgba(20, 24, 36, 0.9);
+  box-shadow: var(--glow);
   position: relative;
   overflow: hidden;
 }
-/* Trazo ultramar decorativo */
+.loader-hero::before {
+  content: "NEROGBA";
+  position: absolute;
+  right: -10px;
+  bottom: -18px;
+  font-size: clamp(72px, 16vw, 160px);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(30, 155, 215, 0.3);
+  pointer-events: none;
+}
 .loader-hero::after {
   content: "";
   position: absolute;
-  right: -40px;
-  top: -40px;
-  width: 180px;
-  height: 180px;
-  background: radial-gradient(circle at 40% 40%, var(--accent-2), var(--accent) 55%, transparent 72%);
-  opacity: 0.22;
+  right: 40px;
+  top: -60px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle at 40% 40%, #fff, var(--accent-2) 55%, transparent 72%);
+  opacity: 0.5;
   pointer-events: none;
 }
 .loader-kicker {
   margin: 0;
-  font-size: 12px;
-  color: var(--cartel);
+  font-size: 11px;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 999px;
+  padding: 4px 12px;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  font-weight: 700;
+  font-weight: 800;
+  font-family: ui-monospace, Menlo, monospace;
 }
 .loader-hero h2 {
   margin: 0;
-  font-size: clamp(24px, 5vw, 36px);
-  line-height: 1.1;
-  letter-spacing: 0.01em;
-  background: linear-gradient(to top, rgba(224, 74, 31, 0.35) 24%, transparent 25%) 0 100% / 100% 0.9em no-repeat;
-  padding-bottom: 4px;
+  font-size: clamp(26px, 5vw, 38px);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  font-weight: 900;
 }
 .loader-sub {
   margin: 0;
@@ -419,24 +752,25 @@
 }
 .load-btn {
   margin-top: 8px;
-  background: linear-gradient(180deg, #ef5a28, var(--cartel));
-  border: 1.5px solid var(--sumi);
-  border-bottom-width: 4px;
+  background: var(--text);
+  border: 1px solid var(--text);
   color: #fff;
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 800;
   letter-spacing: 0.02em;
   padding: 12px 28px;
-  border-radius: 10px;
+  border-radius: 999px;
   cursor: pointer;
   min-height: 52px;
+  box-shadow: var(--glow);
+  position: relative;
+  z-index: 1;
 }
 .load-btn:hover:not(:disabled) {
-  filter: brightness(1.08);
+  filter: brightness(1.15);
 }
 .load-btn:active:not(:disabled) {
-  transform: translateY(2px);
-  border-bottom-width: 1px;
+  transform: translateY(1px);
 }
 .load-btn:disabled {
   opacity: 0.6;
@@ -447,25 +781,17 @@
   color: var(--muted);
   font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  position: relative;
+  z-index: 1;
 }
 
-/* Fullscreen target: wrapper con stage + touch + menú + toasts + modal.
-   En móvil el pad queda como overlay sobre el juego. */
-.fs-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  position: relative;
-}
+/* Fullscreen: se mantiene el marquito azul oscuro + murales */
 .fs-wrap:fullscreen,
 .fs-wrap.pseudo-fullscreen {
   gap: 0;
   justify-content: center;
   align-items: center;
-  background-color: var(--bg);
-  background-image:
-    repeating-linear-gradient(0deg, rgba(20, 24, 36, 0.035) 0 1px, transparent 1px 5px),
-    repeating-linear-gradient(90deg, rgba(20, 24, 36, 0.025) 0 1px, transparent 1px 7px);
+  background: #0a1626;
   padding: 0;
   width: 100%;
   height: 100%;
@@ -476,35 +802,47 @@
 .fs-wrap:fullscreen::backdrop {
   background: var(--bg);
 }
-/* Fallback iOS (sin Fullscreen API): imita el fullscreen */
 .fs-wrap.pseudo-fullscreen {
   position: fixed;
   inset: 0;
   z-index: 60;
   border-radius: 0;
 }
-.fs-wrap:fullscreen .stage,
-.fs-wrap.pseudo-fullscreen .stage {
+.fs-wrap:fullscreen .stage-window,
+.fs-wrap.pseudo-fullscreen .stage-window {
+  border: none;
+  outline: none;
   border-radius: 0;
-  border-left: none;
-  border-right: none;
   width: 100%;
-  min-height: 0;
-  align-items: center;
-  background: var(--lienzo);
+  height: 100%;
+  background: #0a1626;
   box-shadow: none;
 }
-.fs-wrap:fullscreen .stage::before,
-.fs-wrap.pseudo-fullscreen .stage::before {
+/* En fullscreen se quita la titlebar pero se conserva el stage
+   azul oscuro + murales + marco del canvas, solo juego + touch + menú ☰. */
+.fs-wrap:fullscreen .win-bar,
+.fs-wrap.pseudo-fullscreen .win-bar {
   display: none;
+}
+.fs-wrap:fullscreen .stage,
+.fs-wrap.pseudo-fullscreen .stage {
+  background: #0a1626;
+  border-radius: 0;
+  padding: 18px;
+  min-height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: center;
 }
 .fs-wrap:fullscreen .screen,
 .fs-wrap.pseudo-fullscreen .screen {
-  width: min(100vw, calc(100vh * 1.5));
-  max-height: 100vh;
+  width: min(calc(100vw - 36px), calc((100vh - 36px) * 1.5));
+  max-height: calc(100vh - 36px);
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  outline: 1px solid rgba(15, 37, 64, 0.35);
+  box-shadow: 0 0 0 6px rgba(15, 37, 64, 0.85), 0 12px 40px rgba(30, 155, 215, 0.35);
 }
-/* Menú flotante fullscreen (dentro de .fs-wrap para que se vea
-   en Fullscreen API nativa + fallback iOS). Sin .sav a propósito. */
 .fs-menu {
   position: absolute;
   top: calc(8px + env(safe-area-inset-top));
@@ -517,27 +855,30 @@
   display: block;
 }
 .fs-menu-btn {
-  background: linear-gradient(180deg, var(--accent-2), var(--accent));
+  background: var(--text);
   color: #fff;
-  border: 1.5px solid var(--sumi);
-  border-bottom-width: 3px;
-  border-radius: 10px;
+  border: 1px solid var(--text);
+  border-radius: 999px;
   min-width: 44px;
   min-height: 44px;
   padding: 8px 12px;
   font-size: 18px;
   cursor: pointer;
-  opacity: 0.95;
 }
-.fs-menu-btn:active {
-  transform: translateY(2px);
-  border-bottom-width: 1px;
+/* En móvil fullscreen el ☰ vive en la fila táctil (pareja menú+turbo):
+   se oculta el flotante para no tapar L. El panel sigue igual.
+   Solo CSS (live) para no desincronizar con JS. */
+@media (pointer: coarse) {
+  .fs-wrap:fullscreen .fs-menu-btn,
+  .fs-wrap.pseudo-fullscreen .fs-menu-btn {
+    display: none;
+  }
 }
 .fs-menu-backdrop {
   position: fixed;
   inset: 0;
   z-index: 20;
-  background: rgba(20, 24, 36, 0.45);
+  background: rgba(15, 37, 64, 0.4);
 }
 .fs-menu-panel {
   position: fixed;
@@ -545,10 +886,9 @@
   left: 8px;
   right: 8px;
   z-index: 21;
-  background: var(--panel);
-  border: 2px solid var(--sumi);
-  border-top: 5px solid var(--cartel);
-  border-radius: 8px 16px 8px 16px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--stroke);
+  border-radius: 22px;
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -556,7 +896,7 @@
   max-height: min(70vh, 520px);
   overflow-y: auto;
   width: min(calc(100vw - 16px), 420px);
-  box-shadow: 6px 6px 0 rgba(20, 24, 36, 0.9);
+  box-shadow: var(--glow);
 }
 .fs-sec {
   display: flex;
@@ -565,10 +905,11 @@
 }
 .fs-sec h3 {
   margin: 0;
-  font-size: 12px;
-  color: var(--cartel);
+  font-size: 11px;
+  color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.14em;
+  font-family: ui-monospace, Menlo, monospace;
 }
 .fs-grid {
   display: grid;
@@ -576,28 +917,24 @@
   gap: 8px;
 }
 .fs-grid button {
-  background: linear-gradient(180deg, var(--accent-2), var(--accent));
-  border: 1.5px solid var(--sumi);
-  border-bottom-width: 3px;
-  color: #fff;
-  border-radius: 10px;
+  background: #fff;
+  border: 1px solid var(--stroke);
+  color: var(--text);
+  border-radius: 14px;
   padding: 8px 10px;
   min-height: 44px;
   cursor: pointer;
   font-size: 14px;
-}
-.fs-grid button:active:not(:disabled) {
-  transform: translateY(2px);
-  border-bottom-width: 1px;
+  font-weight: 700;
 }
 .fs-grid button:disabled {
   opacity: 0.4;
   cursor: default;
 }
 .fs-grid button.fs-leave {
-  background: linear-gradient(180deg, #ef5a28, var(--cartel));
-  border: 1.5px solid var(--sumi);
-  border-bottom-width: 3px;
+  background: var(--pink);
+  border-color: var(--pink);
+  color: #fff;
 }
 .fs-slotrow {
   display: flex;
@@ -605,17 +942,17 @@
   gap: 8px;
   color: var(--muted);
   font-size: 14px;
+  font-family: ui-monospace, Menlo, monospace;
 }
 .fs-slotrow select {
   flex: 1;
-  background: var(--lienzo);
+  background: #fff;
   color: var(--text);
-  border: 1.5px solid var(--sumi);
-  border-radius: 6px;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
   padding: 8px;
   min-height: 44px;
 }
-/* Toasts y modal dentro del fullscreen: deben pintarse sobre el juego */
 .fs-wrap:fullscreen .toasts,
 .fs-wrap.pseudo-fullscreen .toasts {
   position: absolute;
@@ -629,8 +966,6 @@
   position: absolute;
   z-index: 40;
 }
-
-/* Compat: si algún navegador pide fullscreen directo sobre .stage */
 .stage:fullscreen {
   border-radius: 0;
   min-height: 100%;
@@ -641,9 +976,7 @@
   max-height: 100vh;
 }
 
-/* Touch — layout My Boy en coarse, Blue Period.
-   Vertical: deck debajo de la pantalla (L » R / cruceta+A/B / Select+Start).
-   Horizontal y fullscreen: overlay translúcido sobre el juego. */
+/* Touch — deck frost, layout My Boy intacto */
 .touch {
   display: none;
 }
@@ -653,15 +986,16 @@
     flex-direction: column;
     gap: 10px;
     background: var(--panel);
-    border: 1.5px solid var(--sumi);
-    border-bottom: 4px solid var(--sumi);
-    border-radius: 8px 18px 8px 18px;
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--glass-line);
+    outline: 1px solid var(--stroke);
+    border-radius: 24px;
     padding: 12px;
     user-select: none;
     -webkit-user-select: none;
-    box-shadow: 4px 4px 0 rgba(20, 24, 36, 0.9);
+    box-shadow: var(--glow);
   }
-  /* Fullscreen vertical: deck flotante abajo, no empuja el canvas */
   .fs-wrap:fullscreen .touch,
   .fs-wrap.pseudo-fullscreen .touch {
     position: absolute;
@@ -670,7 +1004,10 @@
     bottom: calc(10px + env(safe-area-inset-bottom));
     z-index: 5;
     background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
     border: none;
+    outline: none;
     border-radius: 0;
     box-shadow: none;
     padding: 8px 14px calc(8px + env(safe-area-inset-bottom));
@@ -679,12 +1016,9 @@
   .fs-wrap:fullscreen .touch .tbtn,
   .fs-wrap.pseudo-fullscreen .touch .tbtn {
     pointer-events: auto;
-    opacity: 0.92;
+    opacity: 0.94;
   }
 }
-/* Horizontal: clusters superpuestos (L/R arriba, cruceta izq, A/B der,
-   Select/Start abajo-centro), como el My Boy apaisado. Gana al deck
-   de fullscreen por ir después con igual especificidad. */
 @media (pointer: coarse) and (orientation: landscape) {
   .fs-wrap .touch,
   .fs-wrap:fullscreen .touch,
@@ -698,7 +1032,10 @@
     z-index: 5;
     display: block;
     background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
     border: none;
+    outline: none;
     border-radius: 0;
     box-shadow: none;
     padding: 0;
@@ -733,7 +1070,7 @@
   .fs-wrap:fullscreen .touch .tbtn,
   .fs-wrap.pseudo-fullscreen .touch .tbtn {
     pointer-events: auto;
-    opacity: 0.8;
+    opacity: 0.86;
   }
   .fs-wrap .touch .tbtn:active,
   .fs-wrap:fullscreen .touch .tbtn:active,
@@ -743,21 +1080,20 @@
 }
 .touch .tbtn {
   touch-action: none;
-  background: linear-gradient(180deg, #2b3352, var(--sumi));
-  border: 1.5px solid var(--sumi);
-  border-bottom-width: 3px;
+  background: rgba(15, 37, 64, 0.88);
+  border: 1px solid var(--text);
   color: #fff;
-  border-radius: 12px;
+  border-radius: 16px;
   min-width: 56px;
   min-height: 56px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 .touch .tbtn:active {
-  transform: translateY(2px);
-  border-bottom-width: 1px;
+  transform: translateY(1px);
   background: var(--accent);
-  color: #fff;
 }
 .tshoulders {
   display: flex;
@@ -765,26 +1101,38 @@
   align-items: center;
   gap: 8px;
 }
-/* L/R como pestañas de hombro */
+/* Pareja centrada arriba (menú + turbo), espejo de SELECT/START abajo */
+.tcenter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .tshoulders .tbtn.tshoulder {
   min-width: 88px;
-  border-radius: 4px 4px 14px 14px;
-  background: linear-gradient(180deg, var(--lienzo), #e4dac4);
-  color: var(--sumi);
-  font-weight: 700;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text);
+  font-weight: 800;
 }
-/* » turbo central */
 .touch .tbtn.tturbo {
   min-width: 52px;
   min-height: 44px;
   border-radius: 999px;
-  background: linear-gradient(180deg, var(--lienzo), #e4dac4);
-  color: var(--sumi);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text);
   font-size: 18px;
   font-weight: 800;
 }
+/* Botón menú ☰ de la pareja superior: pill navy como los botones del deck */
+.touch .tbtn.tmenu {
+  min-width: 52px;
+  min-height: 44px;
+  border-radius: 999px;
+  font-size: 18px;
+}
 .touch .tbtn.tturbo.on {
-  background: linear-gradient(180deg, #ef5a28, var(--cartel));
+  background: var(--pink);
+  border-color: var(--pink);
   color: #fff;
 }
 .tmain {
@@ -799,9 +1147,8 @@
   grid-auto-rows: 58px;
 }
 .dpad .tbtn {
-  border-radius: 10px;
+  border-radius: 14px;
 }
-/* Fila Select/Start centrada */
 .tstart {
   display: flex;
   justify-content: center;
@@ -812,14 +1159,13 @@
   min-height: 44px;
   font-size: 12px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #3a415c, var(--sumi));
+  background: rgba(15, 37, 64, 0.8);
   color: #fff;
-  transform: rotate(-12deg);
+  transform: rotate(-8deg);
 }
 .touch .tbtn.tsmall:active {
-  transform: rotate(-12deg) translateY(2px);
+  transform: rotate(-8deg) translateY(1px);
 }
-/* A/B en diagonal: B arriba-izq pequeña, A abajo-der grande */
 .ab {
   display: flex;
   gap: 10px;
@@ -827,39 +1173,82 @@
   padding-top: 4px;
 }
 .touch .tbtn.tround {
-  border-radius: 50% 46% 52% 48%;
+  border-radius: 50%;
   min-width: 62px;
   min-height: 62px;
   font-size: 18px;
-  border: 2px solid var(--sumi);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  outline: 1px solid var(--stroke);
   color: #fff;
 }
 .touch .tbtn.tround:first-child {
-  /* B — bermellón cartel */
-  background: radial-gradient(circle at 35% 30%, #f0663a, var(--cartel) 55%, #a32e10);
+  background: radial-gradient(circle at 35% 30%, #ffb3d9, var(--pink) 55%, #c2274b);
 }
 .touch .tbtn.tround:last-child {
-  /* A — turquesa pañuelo, más grande y baja */
   min-width: 76px;
   min-height: 76px;
   font-size: 22px;
   margin-top: 22px;
-  background: radial-gradient(circle at 35% 30%, #46aaa5, var(--turquesa) 55%, #1d5a57);
-}
-.touch .tbtn.tround:active {
-  filter: brightness(1.12);
+  background: radial-gradient(circle at 35% 30%, #9adcfa, var(--accent) 55%, #0f5a85);
 }
 
-@media (max-width: 768px) {
-  #root {
+@media (max-width: 900px) {
+  .desktop {
+    grid-template-columns: 1fr;
+  }
+  .side-stack {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    width: auto;
+    height: auto;
+    align-self: auto;
+  }
+  .side-stack.right {
+    order: 3;
+  }
+  .dock {
+    flex-direction: row;
+    position: static;
+    overflow-x: auto;
+    border-radius: 999px;
     padding: 8px;
   }
+  /* En móvil no hay espejo vertical: se anula la altura mínima */
+  .side-stack.left .dock:first-child,
+  .side-stack.right .dock:first-child {
+    min-height: 0;
+  }
+  .dock-label {
+    display: none;
+  }
+  .dock input[type="range"] {
+    flex: 1 1 140px;
+  }
+  .dock select {
+    min-width: 96px;
+  }
+  .wb-center {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .wb-status {
+    max-width: 100%;
+  }
+}
+@media (max-width: 768px) {
+  #root {
+    padding: 8px 8px 20px;
+  }
+  .topbar {
+    border-radius: 22px;
+    top: 4px;
+  }
   .topbar h1 {
-    font-size: 16px;
+    font-size: 15px;
   }
   .stage {
-    min-height: 0;
-    padding: 14px;
+    padding: 10px;
   }
   .screen {
     width: 100%;

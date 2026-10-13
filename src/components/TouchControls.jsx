@@ -45,24 +45,38 @@ function TouchButton({ action, label, code, className = '' }) {
   );
 }
 
-export default function TouchControls({ keymap, turbo = 1, onTurbo }) {
+export default function TouchControls({ keymap, turbo = 1, onTurbo, onMenu, menuOpen = false, showMenu = false }) {
   const c = (action) => keymap[action];
   return (
     <section className="touch" aria-label="Controles táctiles">
       <div className="tshoulders">
         <TouchButton action="L" label="L" code={c('p1.l')} className="tshoulder" />
-        {onTurbo && (
-          <button
-            type="button"
-            className={`tbtn tturbo${turbo > 1 ? ' on' : ''}`}
-            onClick={onTurbo}
-            aria-pressed={turbo > 1}
-            aria-label="Turbo"
-            title={turbo > 1 ? `Turbo ${turbo}x activo` : 'Activar turbo'}
-          >
-            »
-          </button>
-        )}
+        <div className="tcenter">
+          {showMenu && (
+            <button
+              type="button"
+              className="tbtn tmenu"
+              onClick={onMenu}
+              aria-expanded={menuOpen}
+              aria-label="Abrir menú"
+              title="Menú"
+            >
+              {menuOpen ? '✕' : '☰'}
+            </button>
+          )}
+          {onTurbo && (
+            <button
+              type="button"
+              className={`tbtn tturbo${turbo > 1 ? ' on' : ''}`}
+              onClick={onTurbo}
+              aria-pressed={turbo > 1}
+              aria-label="Turbo"
+              title={turbo > 1 ? `Turbo ${turbo}x activo` : 'Activar turbo'}
+            >
+              »
+            </button>
+          )}
+        </div>
         <TouchButton action="R" label="R" code={c('p1.r')} className="tshoulder" />
       </div>
       <div className="tmain">

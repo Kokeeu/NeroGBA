@@ -2,24 +2,30 @@
 // SDK on boot. Drag & drop a local ROM anywhere on the stage.
 // Nota: el target de fullscreen es el wrapper .fs-wrap en App.jsx
 // (stage + touch + botón salir), así el pad táctil sigue visible
-// como overlay en móvil. Este section ya no pide fullscreen.
-export default function Screen({ canvasRef, status, onDropFile }) {
+// como overlay en móvil. Ventana flotante estilo ricing con titlebar.
+export default function Screen({ canvasRef, status, onDropFile, romName = '' }) {
   return (
-    <section
-      className="stage"
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={(e) => {
-        e.preventDefault();
-        const f = e.dataTransfer.files?.[0];
-        if (f) onDropFile(f);
-      }}
-    >
-      <canvas ref={canvasRef} width={240} height={160} className="screen" />
-      {status !== 'running' && (
-        <div className="overlay">
-          {status === 'loading' ? 'Arrancando…' : 'Arrastra un .gba aquí o elígelo arriba'}
-        </div>
-      )}
-    </section>
+    <div className="stage-window">
+      <div className="win-bar" aria-hidden="true">
+        <span className="win-dots"><i /><i /><i /></span>
+        <span className="win-title">{romName || '❄ NeroGBA — sin cartucho'}</span>
+      </div>
+      <section
+        className="stage"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          const f = e.dataTransfer.files?.[0];
+          if (f) onDropFile(f);
+        }}
+      >
+        <canvas ref={canvasRef} width={240} height={160} className="screen" />
+        {status !== 'running' && (
+          <div className="overlay">
+            {status === 'loading' ? 'Arrancando…' : 'Arrastra un .gba aquí o elígelo arriba'}
+          </div>
+        )}
+      </section>
+    </div>
   );
 }

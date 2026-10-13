@@ -14,7 +14,7 @@ Vite 8 + React 19 + mGBA (C -> WASM via Emscripten) + Web Worker + Canvas + WebA
 ## Estructura objetivo
 ```
 src/emulator/ (EmulatorBridge.js, romLoader.js, storage.js, input/keyboard.js)
-src/components/ (Screen.jsx, ControlsBar.jsx, TouchControls.jsx)
+src/components/ (Screen.jsx, TouchControls.jsx)
 public/ (mgba.wasm, mgba.js glue Emscripten)
 ```
 
