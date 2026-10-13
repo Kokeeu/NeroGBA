@@ -45,7 +45,9 @@ export default function App() {
   const [rebinding, setRebinding] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [pseudoFs, setPseudoFs] = useState(false);
   const [recents, setRecents] = useState(getRecents);
+  const fullscreenActive = fullscreen || pseudoFs;
 
   const dismissToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -168,11 +170,27 @@ export default function App() {
     setTurbo(next);
   };
   const onFullscreen = async () => {
+    // Salir: tanto de Fullscreen API como del fallback iOS (pseudo).
+    if (pseudoFs) {
+      setPseudoFs(false);
+      return;
+    }
     try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await stageRef.current?.requestFullscreen();
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        return;
+      }
+      const el = stageRef.current;
+      if (el?.requestFullscreen) {
+        await el.requestFullscreen();
+        return;
+      }
+      // Sin Fullscreen API (iPhone Safari): fallback CSS fixed.
+      setPseudoFs(true);
     } catch {
-      toastError('Pantalla completa no disponible en este navegador.');
+      // requestFullscreen puede fallar en iOS: usar fallback en vez de error.
+      if (stageRef.current && !document.fullscreenElement) setPseudoFs(true);
+      else toastError('Pantalla completa no disponible en este navegador.');
     }
   };
   const onKeymapReset = (fresh) => {
@@ -274,9 +292,17 @@ export default function App() {
         />
       </header>
 
-      <Screen canvasRef={canvasRef} sectionRef={stageRef} status={status} onDropFile={handleFile} />
+      <div ref={stageRef} className={`fs-wrap${pseudoFs ? ' pseudo-fullscreen' : ''}`}>
+        <Screen canvasRef={canvasRef} status={status} onDropFile={handleFile} />
 
-      {booted && <TouchControls keymap={keymap} />}
+        {booted && <TouchControls keymap={keymap} />}
+
+        {fullscreenActive && (
+          <button type="button" className="fs-exit" onClick={onFullscreen} aria-label="Salir de pantalla completa">
+            Salir ⛶
+          </button>
+        )}
+      </div>
 
       <Toasts toasts={toasts} onDismiss={dismissToast} />
 
@@ -299,7 +325,7 @@ export default function App() {
         paused={paused}
         turbo={turbo}
         muted={muted}
-        fullscreen={fullscreen}
+        fullscreen={fullscreenActive}
         onPause={() => {
           bridge.pause();
           setPaused(true);

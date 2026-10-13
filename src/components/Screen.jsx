@@ -1,9 +1,11 @@
 // Canvas stage: 240x160 (GBA) or 160x144 (GB) — geometry is set by the
 // SDK on boot. Drag & drop a local ROM anywhere on the stage.
-export default function Screen({ canvasRef, sectionRef, status, onDropFile }) {
+// Nota: el target de fullscreen es el wrapper .fs-wrap en App.jsx
+// (stage + touch + botón salir), así el pad táctil sigue visible
+// como overlay en móvil. Este section ya no pide fullscreen.
+export default function Screen({ canvasRef, status, onDropFile }) {
   return (
     <section
-      ref={sectionRef}
       className="stage"
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
