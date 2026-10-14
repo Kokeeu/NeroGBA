@@ -70,6 +70,14 @@ class MgbaSink extends AudioWorkletProcessor {
     this.lastPost = 0;
     this.port.onmessage = (e) => {
       const msg = e.data;
+      if (msg && msg.flush) {
+        // Drop any queued backlog so exiting turbo resumes video
+        // immediately instead of freezing while it drains.
+        this.pos = this.w;
+        this.port.postMessage(Math.floor(this.pos));
+        this.lastPost = Math.floor(this.pos);
+        return;
+      }
       if (msg && msg.rate) {
         this.ratio = msg.rate / sampleRate;
         return;
@@ -571,6 +579,23 @@ export async function load(config) {
     // reports its consumption in the same unit for exactly that reason.
     const TARGET_SECONDS = 0.09;
     const MAX_FRAMES_PER_TICK = 5;
+    // Turbo backlog guard: beyond this the 1x deficit loop would freeze
+    // video for seconds while old audio drains (worse on >60Hz screens,
+    // where fixed frames-per-tick outproduces the worklet). Flush instead.
+    const MAX_BACKLOG_SECONDS = 0.5;
+    // Turbo pacing state: wall-clock based so 2x/4x mean N× emulated time
+    // on any display refresh rate, not N frames per rAF tick.
+    let turboWallStart = 0;
+    let turboWallFrames = 0;
+    const flushAudio = () => {
+        try {
+            sink.port.postMessage({ flush: true });
+        }
+        catch {
+            // postMessage before worklet ready: counters still resync below
+        }
+        consumedFrames = enqueuedFrames;
+    };
     let rafId = 0;
     let running = false;
     let paused = false;
@@ -632,14 +657,37 @@ export async function load(config) {
         let frames = 0;
         const turbo = turboMultiplier > 1;
         if (turbo) {
-            // NeroGBA turbo: fixed frame count per tick. Audio is enqueued
-            // as usual and the worklet consumes it ×N (pushWorkletRate), so
-            // it plays faster instead of backlogging. Gain stays at the
-            // configured volume; mute/volume keep working via config.
-            frames = turboMultiplier;
+            // NeroGBA turbo: wall-clock paced (N× emulated time, not N per
+            // rAF). Fixed frames-per-tick overproduces on >60Hz displays and
+            // grows a backlog that freezes video when back at 1x. Audio is
+            // enqueued as usual and the worklet consumes it ×N, so it plays
+            // faster instead of backlogging.
+            if (!turboWallStart) {
+                turboWallStart = now;
+                turboWallFrames = 0;
+            }
+            const cap = turboMultiplier * MAX_FRAMES_PER_TICK;
+            const elapsed = (now - turboWallStart) / 1000;
+            const due = Math.floor(elapsed * framerate * turboMultiplier);
+            let want = due - turboWallFrames;
+            if (want > cap * 3) {
+                // Long stall (hidden tab/jank): skip catch-up, restart pacing.
+                turboWallStart = now;
+                turboWallFrames = 0;
+                want = turboMultiplier;
+            }
+            frames = Math.max(0, Math.min(cap, want));
+            turboWallFrames += frames;
             wallClockStart = 0;
         }
         else if (audioCtx.state === 'running' && audioClockAdvancing(now)) {
+            turboWallStart = 0;
+            turboWallFrames = 0;
+            if (enqueuedFrames - consumedFrames > Math.round(rate * MAX_BACKLOG_SECONDS)) {
+                // Leftover turbo backlog: drop it so video resumes this tick
+                // instead of sitting at 0 frames while seconds of audio drain.
+                flushAudio();
+            }
             const buffered = enqueuedFrames - consumedFrames;
             const deficit = Math.round(rate * TARGET_SECONDS) - buffered;
             const perEmulatedFrame = rate / framerate;
@@ -650,6 +698,8 @@ export async function load(config) {
         else {
             // Wall-clock fallback (audio blocked or stalled): accumulate at the core
             // framerate.
+            turboWallStart = 0;
+            turboWallFrames = 0;
             if (!wallClockStart) {
                 wallClockStart = now;
                 wallClockFrames = 0;
@@ -658,7 +708,7 @@ export async function load(config) {
             frames = due - wallClockFrames;
             wallClockFrames = due;
         }
-        frames = Math.max(0, Math.min(turbo ? turboMultiplier : MAX_FRAMES_PER_TICK, frames));
+        frames = Math.max(0, Math.min(turbo ? turboMultiplier * MAX_FRAMES_PER_TICK : MAX_FRAMES_PER_TICK, frames));
         if (frames > 0) {
             runFrames(frames);
             renderFrame();
@@ -675,6 +725,8 @@ export async function load(config) {
         if (rafId)
             cancelAnimationFrame(rafId);
         wallClockStart = 0;
+        turboWallStart = 0;
+        turboWallFrames = 0;
         rafId = requestAnimationFrame(tick);
     };
     const setInput = (map) => {
@@ -691,9 +743,17 @@ export async function load(config) {
     // instance method used by EmulatorBridge.
     const setTurbo = (level) => {
         const next = TURBO_LEVELS.includes(level) ? level : 1;
+        const slowing = next < turboMultiplier;
         turboMultiplier = next;
         pushWorkletRate();
         wallClockStart = 0;
+        turboWallStart = 0;
+        turboWallFrames = 0;
+        if (slowing) {
+            // Drop the fast-forward backlog so 4x->1x resumes video on the
+            // next tick instead of freezing while seconds of audio drain.
+            flushAudio();
+        }
         return turboMultiplier;
     };
     // -------------------------------------------------------- live settings
