@@ -28,12 +28,6 @@ export default defineConfig({
             type: 'image/png',
             purpose: 'any',
           },
-          {
-            src: 'pwa-icon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any',
-          },
         ],
       },
     }),

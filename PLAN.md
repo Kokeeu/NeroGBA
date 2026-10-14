@@ -41,7 +41,7 @@ Núcleo elegido: mGBA-WASM. ROMs: solo locales. Plataforma: desktop + móvil. MV
 ## Fase 7 - Móvil / PWA (1d) — DONE
 - [x] `src/components/TouchControls.jsx`: D-pad + A/B + L/R + Start/Select vía KeyboardEvents sintéticos sobre el keymap activo (el SDK ya escucha `e.code` en window). Solo con juego arrancado, oculto en punteros finos vía `@media (pointer: coarse)`, `touch-action: none`, multitáctil por pointerId.
 - [x] Responsive: canvas full-width en <768px, editor de teclado oculto en móvil, viewport-fit=cover.
-- [x] PWA: `vite-plugin-pwa` (autoUpdate) + manifest GBA Web + `pwa-icon.svg`. `build` genera `sw.js` + `manifest.webmanifest` (200 en preview).
+- [x] PWA: `vite-plugin-pwa` (autoUpdate) + manifest GBA Web (icono = `nero-icon.png`, el mismo del favicon). `build` genera `sw.js` + `manifest.webmanifest` (200 en preview).
 
 ## Fase 8 - Extras v1.1 — DONE
 - [x] SRAM `.sav`: `saveSram()/loadSram()` en vendor (lectura live del core, sin race con autosave OPFS) → `bridge.exportSram()/importSram()` → sección Batería (.sav) en `App.jsx` (export descarga `<rom>.sav`, import lo aplica en caliente + persiste).
