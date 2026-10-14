@@ -1400,13 +1400,17 @@
 }
 .tstart {
   display: flex;
+  flex-direction: row;
   justify-content: center;
-  gap: 14px;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 10px;
 }
 .touch .tbtn.tsmall {
-  min-width: 84px;
+  min-width: 68px;
   min-height: 44px;
-  font-size: 12px;
+  padding: 8px 10px;
+  font-size: 11px;
   border-radius: 999px;
   /* Mismo vidrio neutro (el texto pequeño se lee por text-shadow) */
   transform: rotate(-8deg);
