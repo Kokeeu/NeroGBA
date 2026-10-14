@@ -1,6 +1,7 @@
-// Menú flotante para fullscreen móvil (dentro de .fs-wrap, que es el
-// target de Fullscreen API + fallback pseudo). Incluye transporte,
-// slots y ajustes/salir. Batería .sav queda fuera a propósito.
+// Menú móvil + fullscreen (dentro de .fs-wrap, que es el target de
+// Fullscreen API + fallback pseudo). En móvil coarse también se usa fuera
+// de fullscreen: contiene las columnas JUEGO/SLOTS/VIDEO/SISTEMA + .sav.
+// El turbo vive aquí dentro, no en el deck táctil.
 import { useEffect } from 'react';
 import { SLOTS } from '../emulator/storage.js';
 
@@ -14,6 +15,10 @@ export default function FsMenu({
   muted,
   slot,
   slotsUsed,
+  display,
+  volume = 1,
+  fullscreenActive = false,
+  romSaved = false,
   onSlotChange,
   onPause,
   onResume,
@@ -21,6 +26,8 @@ export default function FsMenu({
   onTurbo,
   onScreenshot,
   onToggleMute,
+  onDisplay,
+  onVolume,
   onFullscreen,
   onOpenSettings,
   onSave,
@@ -28,6 +35,9 @@ export default function FsMenu({
   onDelete,
   onExport,
   onImportClick,
+  onExportSav,
+  onImportSavClick,
+  onSaveRom,
 }) {
   useEffect(() => {
     if (!open) return;
@@ -52,7 +62,7 @@ export default function FsMenu({
         onClick={onToggle}
         aria-expanded={open}
         aria-controls="fs-menu-panel"
-        aria-label="Abrir menú de pantalla completa"
+        aria-label="Abrir menú"
       >
         {open ? '✕' : '☰'}
       </button>
@@ -60,7 +70,7 @@ export default function FsMenu({
       {open && (
         <>
           <div className="fs-menu-backdrop" onClick={onClose} aria-hidden="true" />
-          <div id="fs-menu-panel" className="fs-menu-panel" role="menu" aria-label="Menú pantalla completa">
+          <div id="fs-menu-panel" className="fs-menu-panel" role="menu" aria-label="Menú">
             <section className="fs-sec">
               <h3>Juego</h3>
               <div className="fs-grid">
@@ -76,9 +86,6 @@ export default function FsMenu({
                 <button type="button" disabled={!booted} onClick={act(onReset)}>
                   Reset
                 </button>
-                <button type="button" disabled={!booted} onClick={act(onTurbo, true)}>
-                  Turbo {turbo > 1 ? `${turbo}x` : '1x'}
-                </button>
                 <button type="button" disabled={!booted} onClick={act(onScreenshot)}>
                   Screenshot
                 </button>
@@ -86,6 +93,46 @@ export default function FsMenu({
                   {muted ? 'Unmute' : 'Mute'}
                 </button>
               </div>
+            </section>
+
+            <section className="fs-sec">
+              <h3>Video</h3>
+              <div className="fs-grid">
+                <button type="button" disabled={!booted} onClick={act(onTurbo, true)}>
+                  Turbo {turbo > 1 ? `${turbo}x` : '1x'}
+                </button>
+                {onDisplay && (
+                  <>
+                    <button type="button" onClick={act(() => onDisplay('renderFilter', display?.renderFilter === 'pixelated' ? 'smooth' : 'pixelated'), true)}>
+                      Filtro: {display?.renderFilter === 'pixelated' ? 'pixel' : 'suave'}
+                    </button>
+                    <button type="button" onClick={act(() => onDisplay('aspect', display?.aspect === 'native' ? '4:3' : 'native'), true)}>
+                      Aspecto: {display?.aspect ?? 'nativo'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={act(() => onDisplay('interframeBlending', !display?.interframeBlending), true)}
+                    >
+                      Ghosting {display?.interframeBlending ? 'ON' : 'OFF'}
+                    </button>
+                  </>
+                )}
+              </div>
+              {onVolume && (
+                <label className="fs-slotrow">
+                  Vol
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={muted ? 0 : volume}
+                    disabled={!booted}
+                    onChange={(e) => onVolume(Number(e.target.value))}
+                    aria-label="Volumen"
+                  />
+                </label>
+              )}
             </section>
 
             <section className="fs-sec">
@@ -125,9 +172,24 @@ export default function FsMenu({
                 <button type="button" onClick={act(onOpenSettings)}>
                   Ajustes
                 </button>
-                <button type="button" className="fs-leave" onClick={act(onFullscreen)}>
-                  Salir ⛶
+                <button type="button" className={fullscreenActive ? 'fs-leave' : ''} onClick={act(onFullscreen)}>
+                  {fullscreenActive ? 'Salir ⛶' : 'Pantalla ⛶'}
                 </button>
+                {onExportSav && (
+                  <button type="button" disabled={!booted} onClick={act(onExportSav)}>
+                    Exportar .sav
+                  </button>
+                )}
+                {onImportSavClick && (
+                  <button type="button" disabled={!booted} onClick={act(onImportSavClick)}>
+                    Importar .sav
+                  </button>
+                )}
+                {onSaveRom && (
+                  <button type="button" disabled={!booted || romSaved} onClick={act(onSaveRom)}>
+                    {romSaved ? '● En biblioteca' : 'Guardar .gba'}
+                  </button>
+                )}
               </div>
             </section>
           </div>

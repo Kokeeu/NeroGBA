@@ -18,6 +18,7 @@ import RecentsBar from './components/RecentsBar.jsx';
 import { LeftDocks, RightDocks } from './components/SideDocks.jsx';
 import { useToasts } from './hooks/useToasts.js';
 import { useFullscreen } from './hooks/useFullscreen.js';
+import { useCoarsePointer } from './hooks/useCoarsePointer.js';
 import {
   fileToBytes,
   gbaHeaderWarning,
@@ -76,9 +77,12 @@ export default function App() {
   const { toasts, toastInfo, toastError, dismissToast, clearToasts } = useToasts();
   const fs = useFullscreen(stageRef, toastError);
   const fullscreenActive = fs.active;
-  // El ☰ vive en la fila táctil cuando hay fullscreen; en desktop la fila
-  // está oculta por CSS y queda el flotante. Cuál se ve lo decide solo CSS
-  // (pointer:coarse) para no desincronizar JS y media queries.
+  const isCoarse = useCoarsePointer();
+  // El ☰ vive en la fila táctil en móvil (normal + fullscreen); en desktop
+  // la fila está oculta por CSS y los docks laterales quedan visibles.
+  // showMenu y el panel usan el mismo flag JS (coarse) para no
+  // desincronizar con las media queries.
+  const showMobileMenu = fullscreenActive || isCoarse;
   const closeFsMenu = useCallback(() => setFsMenuOpen(false), []);
 
   const refreshSlots = useCallback(async (ns) => {
@@ -439,15 +443,15 @@ export default function App() {
           {booted && (
             <TouchControls
               keymap={keymap}
-              turbo={turbo}
-              onTurbo={onTurbo}
               onMenu={() => setFsMenuOpen((v) => !v)}
               menuOpen={fsMenuOpen}
-              showMenu={fullscreenActive}
+              showMenu={showMobileMenu}
+              onFullscreen={fs.enter}
+              fullscreenActive={fullscreenActive}
             />
           )}
 
-          {fullscreenActive && (
+          {booted && showMobileMenu && (
             <FsMenu
               open={fsMenuOpen}
               onToggle={() => setFsMenuOpen((v) => !v)}
@@ -458,6 +462,10 @@ export default function App() {
               muted={muted}
               slot={slot}
               slotsUsed={slotsUsed}
+              display={display}
+              volume={volume}
+              fullscreenActive={fullscreenActive}
+              romSaved={romSaved}
               onSlotChange={setSlot}
               onPause={handlePause}
               onResume={handleResume}
@@ -465,6 +473,8 @@ export default function App() {
               onTurbo={onTurbo}
               onScreenshot={handleScreenshot}
               onToggleMute={onToggleMute}
+              onDisplay={onDisplay}
+              onVolume={onVolume}
               onFullscreen={fs.enter}
               onOpenSettings={() => {
                 setFsMenuOpen(false);
@@ -475,6 +485,9 @@ export default function App() {
               onDelete={onDelete}
               onExport={onExport}
               onImportClick={() => importInputRef.current?.click()}
+              onExportSav={onExportSav}
+              onImportSavClick={() => savInputRef.current?.click()}
+              onSaveRom={onSaveToLibrary}
             />
           )}
 

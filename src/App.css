@@ -971,6 +971,14 @@
 .fs-wrap.pseudo-fullscreen .fs-menu {
   display: block;
 }
+/* En móvil táctil el menú ☰ vive fuera de fullscreen también (dentro de
+   .fs-wrap, trigger en la fila táctil junto a ⛶): el contenedor se muestra
+   pero el botón flotante se oculta para no tapar L. */
+@media (pointer: coarse) {
+  .fs-wrap .fs-menu {
+    display: block;
+  }
+}
 .fs-menu-btn {
   background: var(--text);
   color: #fff;
@@ -982,10 +990,11 @@
   font-size: 18px;
   cursor: pointer;
 }
-/* En móvil fullscreen el ☰ vive en la fila táctil (pareja menú+turbo):
+/* En móvil el ☰ vive en la fila táctil (pareja menú+fullscreen):
    se oculta el flotante para no tapar L. El panel sigue igual.
-   Solo CSS (live) para no desincronizar con JS. */
+   Vale tanto en fullscreen como en móvil normal. */
 @media (pointer: coarse) {
+  .fs-wrap .fs-menu-btn,
   .fs-wrap:fullscreen .fs-menu-btn,
   .fs-wrap.pseudo-fullscreen .fs-menu-btn {
     display: none;
@@ -1068,6 +1077,11 @@
   border: 1px solid var(--stroke);
   border-radius: 999px;
   padding: 8px;
+  min-height: 44px;
+}
+.fs-slotrow input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
   min-height: 44px;
 }
 .fs-wrap:fullscreen .toasts,
@@ -1237,7 +1251,7 @@
   align-items: center;
   gap: 8px;
 }
-/* Pareja centrada arriba (menú + turbo), espejo de SELECT/START abajo */
+/* Pareja centrada arriba (menú + fullscreen), espejo de SELECT/START abajo */
 .tcenter {
   display: flex;
   align-items: center;
@@ -1249,7 +1263,11 @@
   /* Mismo vidrio neutro que el resto (antes pill blanca opaca) */
   font-weight: 800;
 }
-.touch .tbtn.tturbo {
+/* Botones de la pareja superior (☰ menú + ⛶ fullscreen): pills neutras.
+   (.tturbo se conserva por compatibilidad pero ya no se usa en el deck;
+   el turbo vive dentro del menú ☰.) */
+.touch .tbtn.tturbo,
+.touch .tbtn.tfullscreen {
   min-width: 52px;
   min-height: 44px;
   border-radius: 999px;
@@ -1357,6 +1375,12 @@
 /* Liquid Glass: sin vidrio-sobre-vidrio. El deck ya es blur; los botones
    no necesitan opacidad extra (el material lleva su propio alfa). */
 @media (pointer: coarse) {
+  /* En táctil las columnas viven dentro del menú ☰ (junto a ⛶ en el deck):
+     se ocultan los docks para dejar solo pantalla + touch + footer.
+     En desktop de puntero fino se conservan (laterales o carrusel). */
+  .desktop .side-stack {
+    display: none;
+  }
   .touch {
     -webkit-backdrop-filter: blur(14px) saturate(160%);
     backdrop-filter: blur(14px) saturate(160%);

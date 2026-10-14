@@ -1,10 +1,10 @@
 // Touch overlay for coarse pointers (phones/tablets).
-// Layout estilo My Boy: fila L » R, cruceta + A/B y Select/Start.
+// Layout estilo My Boy: fila L [☰ ⛶] R, cruceta + A/B y Select/Start.
 // Drives the emulator by dispatching synthetic KeyboardEvents through the
 // active keymap — the SDK already listens on window for keydown/keyup by
 // e.code, so no extra input plumbing is needed. CSS hides this on fine
-// pointers; it only renders while a game is booted. El botón » es turbo
-// (bridge) y viene por props desde App.
+// pointers; it only renders while a game is booted. El turbo vive dentro
+// del menú ☰ (FsMenu); en el deck queda ⛶ para acceso rápido.
 import { useRef } from 'react';
 
 function press(code) {
@@ -45,7 +45,7 @@ function TouchButton({ action, label, code, className = '' }) {
   );
 }
 
-export default function TouchControls({ keymap, turbo = 1, onTurbo, onMenu, menuOpen = false, showMenu = false }) {
+export default function TouchControls({ keymap, onMenu, menuOpen = false, showMenu = false, onFullscreen, fullscreenActive = false }) {
   const c = (action) => keymap[action];
   return (
     <section className="touch" aria-label="Controles táctiles">
@@ -64,16 +64,16 @@ export default function TouchControls({ keymap, turbo = 1, onTurbo, onMenu, menu
               {menuOpen ? '✕' : '☰'}
             </button>
           )}
-          {onTurbo && (
+          {onFullscreen && (
             <button
               type="button"
-              className={`tbtn tturbo${turbo > 1 ? ' on' : ''}`}
-              onClick={onTurbo}
-              aria-pressed={turbo > 1}
-              aria-label="Turbo"
-              title={turbo > 1 ? `Turbo ${turbo}x activo` : 'Activar turbo'}
+              className="tbtn tfullscreen"
+              onClick={onFullscreen}
+              aria-pressed={fullscreenActive}
+              aria-label={fullscreenActive ? 'Salir de pantalla completa' : 'Pantalla completa'}
+              title={fullscreenActive ? 'Salir de pantalla completa' : 'Pantalla completa'}
             >
-              »
+              ⛶
             </button>
           )}
         </div>
