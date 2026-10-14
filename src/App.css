@@ -160,29 +160,51 @@
   grid-template-columns: minmax(0, 1fr);
 }
 /* Columnas laterales: pilas de docks verticales en espejo.
-   stretch + height 100% => ambas pilas miden lo mismo que el stage;
-   el dock inferior (flex:1) absorbe el resto y los pares quedan alineados. */
+   stretch => ambas pilas miden exactamente lo mismo que el stage
+   (la fila del grid las iguala; el dock inferior se ancla abajo). */
 .side-stack {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 12px;
   width: 108px;
   min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
   position: sticky;
   top: 68px;
-  max-height: calc(100vh - 84px);
-  overflow-y: auto;
-  scrollbar-width: thin;
   align-self: stretch;
-  height: 100%;
+  height: auto;
+  /* Panel frost unificado detrás de la pila: una sola cápsula
+     redondeada por lado (los docks son secciones transparentes dentro) */
+  background: var(--panel);
+  background-clip: padding-box;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--glass-line);
+  outline: 1px solid var(--stroke);
+  border-radius: 24px;
+  padding: 8px 6px;
+  box-shadow: var(--glow);
 }
 .side-stack .dock {
   position: static;
   flex: 0 0 auto;
+  /* Sección dentro del panel: sin vidrio propio (evita
+     vidrio-sobre-vidrio y dobles bordes) */
+  background: transparent;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-radius: 0;
+  padding: 2px;
 }
-/* El dock inferior de cada pila crece para igualar la altura total */
+/* El dock inferior ya no necesita estirarse ni curva propia:
+   el panel de la pila ocupa toda la altura y lleva el redondeado */
 .side-stack .dock:last-child {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
 }
 .dock {
   display: flex;
@@ -190,6 +212,7 @@
   gap: 8px;
   align-items: stretch;
   background: var(--panel);
+  background-clip: padding-box;
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   border: 1px solid var(--glass-line);
@@ -215,7 +238,10 @@
   color: var(--text);
   border-radius: 16px;
   min-height: 44px;
-  min-width: 44px;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
   cursor: pointer;
   font-size: 15px;
   font-weight: 700;
@@ -244,13 +270,22 @@
   font-size: 11px;
   font-family: ui-monospace, Menlo, monospace;
 }
-/* Botones de texto en docks estrechos (slots/batería/sistema) */
+/* Botones de texto en docks estrechos (slots/batería/sistema):
+   sin nowrap para que "● En biblioteca" no desborde la columna de 108px;
+   se permite 2 líneas centradas. */
 .dock button.txt {
   font-size: 12px;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: break-word;
+  line-height: 1.25;
+  text-align: center;
+  padding: 6px 4px;
 }
 .dock select {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   background: rgba(255, 255, 255, 0.85);
   color: var(--text);
   border: 1px solid var(--stroke);
@@ -285,7 +320,7 @@
   }
   .side-stack .dock button {
     min-height: 38px;
-    min-width: 38px;
+    min-width: 0;
     font-size: 14px;
   }
   /* Los de texto mantienen 12px para caber en la columna estrecha */
@@ -309,6 +344,9 @@
   gap: 12px;
   position: relative;
   min-width: 0;
+  min-height: 0;
+  align-self: stretch;
+  height: auto;
 }
 .stage-window {
   background: var(--lienzo);
@@ -320,6 +358,12 @@
   overflow: hidden;
   box-shadow: var(--glow);
   position: relative;
+  /* La ventana absorbe el alto libre de la fila para medir siempre
+     lo mismo que las columnas laterales (estiran por grid) */
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 .win-bar {
   display: flex;
@@ -356,6 +400,8 @@
   background: #0a1626;
   display: flex;
   justify-content: center;
+  align-items: center;
+  flex: 1 1 auto;
   padding: 18px;
   overflow: hidden;
 }
@@ -1366,6 +1412,15 @@
     width: auto;
     height: auto;
     align-self: auto;
+    /* En móvil no hay panel lateral: cada dock vuelve a ser su pill */
+    background: transparent;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-radius: 0;
+    padding: 0;
   }
   .side-stack.right {
     order: 3;
@@ -1376,6 +1431,17 @@
     overflow-x: auto;
     border-radius: 999px;
     padding: 8px;
+  }
+  /* En móvil cada dock recupera su propio frost pill */
+  .side-stack .dock {
+    background: var(--panel);
+    background-clip: padding-box;
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--glass-line);
+    outline: 1px solid var(--stroke);
+    border-radius: 999px;
+    box-shadow: var(--glow);
   }
   /* En móvil no hay espejo vertical: se anula la altura mínima */
   .side-stack.left .dock:first-child,
