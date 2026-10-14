@@ -72,10 +72,13 @@ class MgbaSink extends AudioWorkletProcessor {
       const msg = e.data;
       if (msg && msg.flush) {
         // Drop any queued backlog so exiting turbo resumes video
-        // immediately instead of freezing while it drains.
+        // instead of freezing while it drains. Ack with an object so
+        // the SDK can resync both counters (the ring may have dropped
+        // frames while full, so enqueued != w by now).
         this.pos = this.w;
-        this.port.postMessage(Math.floor(this.pos));
-        this.lastPost = Math.floor(this.pos);
+        const p = Math.floor(this.pos);
+        this.port.postMessage({ flushed: true, pos: p });
+        this.lastPost = p;
         return;
       }
       if (msg && msg.rate) {
@@ -246,8 +249,24 @@ export async function load(config) {
     sink.connect(gain).connect(audioCtx.destination);
     let enqueuedFrames = 0;
     let consumedFrames = 0;
+    let flushPending = false;
     sink.port.onmessage = (e) => {
-        consumedFrames = e.data;
+        const m = e.data;
+        if (m && typeof m === 'object' && m.flushed) {
+            // Worklet dropped its queue: real buffered is 0, so rebase both
+            // counters onto the worklet cursor. This also discards any
+            // frames the ring dropped while full (enqueued != w by now).
+            enqueuedFrames = m.pos;
+            consumedFrames = m.pos;
+            flushPending = false;
+            return;
+        }
+        if (typeof m === 'number') {
+            // Stale reports racing a flush ack must not rewind the resync.
+            if (flushPending)
+                return;
+            consumedFrames = m;
+        }
     };
     // --------------------------------------------------------------- module
     const jsUrl = config.jsUrl ?? new URL('./mgba.js', import.meta.url).href;
@@ -587,14 +606,31 @@ export async function load(config) {
     // on any display refresh rate, not N frames per rAF tick.
     let turboWallStart = 0;
     let turboWallFrames = 0;
+    // Hardening for Nx->1x transitions: a single rate postMessage is
+    // fragile — if the worklet ever keeps consuming at Nx while the core
+    // produces 1x, the 1x deficit loop pins at MAX_FRAMES_PER_TICK every
+    // tick (300fps on 60Hz) with constant underruns (distorted sound and
+    // ~2x+ perceived speed). So a slowdown re-pushes the 1x rate on the
+    // next ticks (ratePushRepeat), and a stuck flush ack times out.
+    let ratePushRepeat = 0;
+    let flushAt = 0;
+    let capHits = 0;
+    const FLUSH_ACK_MS = 300;
+    const CAP_HITS_HEAL = 20;
     const flushAudio = () => {
         try {
             sink.port.postMessage({ flush: true });
         }
         catch {
-            // postMessage before worklet ready: counters still resync below
+            // postMessage before worklet ready: ack just never comes
         }
-        consumedFrames = enqueuedFrames;
+        // No optimistic counter touch here: the ack rebases both counters.
+        // Touching them locally diverges from the worklet cursor when the
+        // ring dropped frames, which caused a flush-every-tick loop (fast
+        // video + distorted audio). This tick runs 0 frames; the next one
+        // resumes once the ack lands (~ms).
+        flushPending = true;
+        flushAt = performance.now();
     };
     let rafId = 0;
     let running = false;
@@ -683,9 +719,23 @@ export async function load(config) {
         else if (audioCtx.state === 'running' && audioClockAdvancing(now)) {
             turboWallStart = 0;
             turboWallFrames = 0;
-            if (enqueuedFrames - consumedFrames > Math.round(rate * MAX_BACKLOG_SECONDS)) {
-                // Leftover turbo backlog: drop it so video resumes this tick
-                // instead of sitting at 0 frames while seconds of audio drain.
+            // A slowdown re-pushes the 1x rate a few ticks: survives a lost
+            // or reordered worklet message that would otherwise leave the
+            // reader consuming at Nx (300fps + distorted audio).
+            if (ratePushRepeat > 0) {
+                ratePushRepeat--;
+                pushWorkletRate();
+            }
+            // A flush ack that never lands must not freeze consumed updates
+            // forever: time out, re-push the rate, and let pacing recover.
+            if (flushPending && now - flushAt > FLUSH_ACK_MS) {
+                flushPending = false;
+                pushWorkletRate();
+            }
+            if (!flushPending && enqueuedFrames - consumedFrames > Math.round(rate * MAX_BACKLOG_SECONDS)) {
+                // Leftover turbo backlog: drop it so video resumes once the
+                // ack lands instead of sitting at 0 frames while seconds of
+                // audio drain.
                 flushAudio();
             }
             const buffered = enqueuedFrames - consumedFrames;
@@ -693,6 +743,21 @@ export async function load(config) {
             const perEmulatedFrame = rate / framerate;
             if (deficit > 0)
                 frames = Math.ceil(deficit / perEmulatedFrame);
+            // Watchdog: pinned at cap in 1x means the worklet is still
+            // consuming faster than 1x produce (stuck Nx ratio). Re-push the
+            // 1x rate and drop the backlog instead of staying fast + glitchy.
+            if (frames >= MAX_FRAMES_PER_TICK) {
+                if (++capHits >= CAP_HITS_HEAL) {
+                    capHits = 0;
+                    pushWorkletRate();
+                    ratePushRepeat = 5;
+                    if (!flushPending)
+                        flushAudio();
+                }
+            }
+            else {
+                capHits = 0;
+            }
             wallClockStart = 0;
         }
         else {
@@ -727,6 +792,7 @@ export async function load(config) {
         wallClockStart = 0;
         turboWallStart = 0;
         turboWallFrames = 0;
+        capHits = 0;
         rafId = requestAnimationFrame(tick);
     };
     const setInput = (map) => {
@@ -749,10 +815,22 @@ export async function load(config) {
         wallClockStart = 0;
         turboWallStart = 0;
         turboWallFrames = 0;
+        capHits = 0;
         if (slowing) {
-            // Drop the fast-forward backlog so Nx->1x resumes video on the
-            // next tick instead of freezing while seconds of audio drain.
-            flushAudio();
+            // Re-push the 1x rate over the next ticks: a single postMessage
+            // reaching the worklet out of order (or dropped) leaves it
+            // consuming at Nx, which is exactly the stuck-fast + distorted
+            // audio state. Only drop queued audio when there really is a
+            // backlog; a balanced turbo holds ~90ms and needs no gap.
+            ratePushRepeat = 5;
+            const backlog = enqueuedFrames - consumedFrames;
+            const limit = Math.round((coreRate > 0 ? coreRate : 32768) * MAX_BACKLOG_SECONDS);
+            if (!flushPending && backlog > limit) {
+                // Drop the fast-forward backlog so Nx->1x resumes video on
+                // the next tick instead of freezing while seconds of audio
+                // drain.
+                flushAudio();
+            }
         }
         return turboMultiplier;
     };
