@@ -1,3 +1,13 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
 :root {
   /* NeroGBA Frost — celeste kawaii + ricing (reemplaza Blue Period) */
   --bg: #bfe3f8;

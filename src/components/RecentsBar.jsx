@@ -16,11 +16,17 @@ export default function RecentsBar({ recents, library = {}, onBootSaved, onRecen
           <span key={r.namespace} className="recent-row">
             <button
               type="button"
+              className="recent-main"
               onClick={() => (saved ? onBootSaved(r) : onRecent(r))}
               title={saved ? 'En biblioteca: arranca directo' : `${r.system || ''} · no guardada, hay que re-elegir el archivo`}
             >
-              {saved ? '●' : '○'} {r.name}
-              {saved && meta ? ` · ${(meta.byteLength / 1048576).toFixed(1)}MB` : ''}
+              <span className="recent-dot" aria-hidden="true">
+                {saved ? '●' : '○'}
+              </span>
+              <span className="recent-label">
+                {r.name}
+                {saved && meta ? ` · ${(meta.byteLength / 1048576).toFixed(1)}MB` : ''}
+              </span>
             </button>
             {saved ? (
               <button

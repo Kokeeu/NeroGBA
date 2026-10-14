@@ -93,6 +93,7 @@ export function RightDocks({
   onImportSavClick,
   romSaved = false,
   onSaveRom,
+  onOpenSettings,
 }) {
   return (
     <div className="side-stack right">
@@ -181,6 +182,15 @@ export function RightDocks({
           title={romSaved ? 'Esta ROM ya está en la biblioteca local' : 'Guardar la ROM en este navegador (biblioteca local)'}
         >
           {romSaved ? '● En biblioteca' : 'Guardar .gba'}
+        </button>
+        <button
+          type="button"
+          className="txt"
+          onClick={onOpenSettings}
+          title="Ver y remapear controles de teclado"
+          aria-label="Abrir ajustes de teclado"
+        >
+          ⌨ Teclado
         </button>
       </aside>
     </div>

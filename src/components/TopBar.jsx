@@ -1,7 +1,7 @@
 // Top waybar (presentational): brand + screen switch + status + navigation.
 // No emulation logic here — everything arrives via props (composition over
 // god-components). See DESIGN.md "Waybar".
-export default function TopBar({ logoUrl, booted, statusText, onChangeGame, onOpenSettings }) {
+export default function TopBar({ logoUrl, booted, statusText, onChangeGame }) {
   return (
     <header className="topbar" aria-label="Barra de estado">
       <div className="wb-left">
@@ -25,9 +25,6 @@ export default function TopBar({ logoUrl, booted, statusText, onChangeGame, onOp
             Cambiar juego
           </button>
         )}
-        <button type="button" onClick={onOpenSettings} title="Abrir ajustes">
-          ⚙
-        </button>
       </div>
     </header>
   );

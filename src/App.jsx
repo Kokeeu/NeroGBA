@@ -375,7 +375,6 @@ export default function App() {
         booted={booted}
         statusText={statusText}
         onChangeGame={onChangeGame}
-        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       {/* Input ROM único, siempre montado */}
@@ -503,10 +502,6 @@ export default function App() {
             rebinding={rebinding}
             onRebind={setRebinding}
             onKeymapReset={onKeymapReset}
-            volume={muted ? 0 : volume}
-            onVolume={onVolume}
-            display={display}
-            onDisplay={onDisplay}
           />
         </div>
 
@@ -527,6 +522,7 @@ export default function App() {
             onImportSavClick={() => savInputRef.current?.click()}
             romSaved={romSaved}
             onSaveRom={onSaveToLibrary}
+            onOpenSettings={() => setSettingsOpen(true)}
           />
         )}
       </div>

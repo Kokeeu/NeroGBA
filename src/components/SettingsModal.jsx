@@ -1,4 +1,6 @@
-// Settings modal: keyboard remap table + volume + display prefs.
+// Settings modal: keyboard remap table only.
+// Audio + display already live in the side docks / FsMenu, so the modal
+// stays exclusive to keyboard to avoid duplicated controls.
 // Remap capture itself lives in App (window keydown listener); the modal
 // only renders the table and forwards actions.
 import { useEffect, useRef } from 'react';
@@ -11,10 +13,6 @@ export default function SettingsModal({
   rebinding,
   onRebind,
   onKeymapReset,
-  volume,
-  onVolume,
-  display,
-  onDisplay,
 }) {
   const closeRef = useRef(null);
 
@@ -41,12 +39,12 @@ export default function SettingsModal({
         className="modal"
         role="dialog"
         aria-modal="true"
-        aria-label="Ajustes"
+        aria-label="Ajustes de teclado"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="modal-head">
-          <h2>Ajustes</h2>
-          <button ref={closeRef} type="button" onClick={onClose} aria-label="Cerrar ajustes">
+          <h2>Teclado</h2>
+          <button ref={closeRef} type="button" onClick={onClose} aria-label="Cerrar ajustes de teclado">
             ×
           </button>
         </header>
@@ -70,50 +68,6 @@ export default function SettingsModal({
           <button type="button" className="linklike" onClick={onResetKeys}>
             Restablecer defaults
           </button>
-        </section>
-
-        <section className="modal-sec">
-          <h3>Audio</h3>
-          <label className="vol">
-            Volumen
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={volume}
-              onChange={(e) => onVolume(Number(e.target.value))}
-            />
-          </label>
-        </section>
-
-        <section className="modal-sec">
-          <h3>Pantalla</h3>
-          <label>
-            Filtro
-            <select
-              value={display.renderFilter}
-              onChange={(e) => onDisplay('renderFilter', e.target.value)}
-            >
-              <option value="pixelated">Pixelado</option>
-              <option value="smooth">Suave</option>
-            </select>
-          </label>
-          <label>
-            Aspecto
-            <select value={display.aspect} onChange={(e) => onDisplay('aspect', e.target.value)}>
-              <option value="native">Nativo</option>
-              <option value="4:3">4:3</option>
-            </select>
-          </label>
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={display.interframeBlending}
-              onChange={(e) => onDisplay('interframeBlending', e.target.checked)}
-            />
-            Ghosting LCD
-          </label>
         </section>
       </div>
     </div>

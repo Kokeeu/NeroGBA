@@ -170,7 +170,7 @@ export default function FsMenu({
               <h3>Sistema</h3>
               <div className="fs-grid">
                 <button type="button" onClick={act(onOpenSettings)}>
-                  Ajustes
+                  ⌨ Teclado
                 </button>
                 <button type="button" className={fullscreenActive ? 'fs-leave' : ''} onClick={act(onFullscreen)}>
                   {fullscreenActive ? 'Salir ⛶' : 'Pantalla ⛶'}

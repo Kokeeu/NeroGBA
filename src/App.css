@@ -476,6 +476,8 @@
   padding: 12px;
   border-radius: 22px;
   box-shadow: var(--glow);
+  min-width: 0;
+  max-width: 100%;
 }
 .controls button {
   background: rgba(255, 255, 255, 0.8);
@@ -627,22 +629,54 @@
   border: 1px solid var(--stroke);
 }
 /* Biblioteca: lista vertical, una ROM por fila (botón crece + acción). */
+.shell > * {
+  min-width: 0;
+}
 .recents {
   flex-direction: column;
   align-items: stretch;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 .recent-row {
   display: flex;
   gap: 8px;
   align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  overflow: hidden;
 }
-.recent-row > button:first-child {
+.recent-row > button:first-child,
+.recent-row > .recent-main {
   flex: 1 1 auto;
   min-width: 0;
+  max-width: 100%;
   text-align: left;
+  overflow: hidden;
+  /* El ellipsis fiable vive en el span interno: text-overflow sobre
+     el <button> directo falla en varios navegadores. */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.recent-dot {
+  flex: 0 0 auto;
+}
+.recent-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.recent-row > button:last-child {
+  flex: 0 0 auto;
 }
 .controls button.linklike,
 .linklike {
@@ -670,6 +704,7 @@
   justify-content: center;
   z-index: 50;
   padding: 16px;
+  min-width: 0;
 }
 .modal {
   background: rgba(255, 255, 255, 0.94);
@@ -679,8 +714,11 @@
   border-radius: 22px;
   padding: 16px;
   width: min(100%, 560px);
+  max-width: 100%;
+  min-width: 0;
   max-height: 85vh;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -690,6 +728,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
+  min-width: 0;
   border-bottom: 1px solid var(--stroke);
   padding-bottom: 8px;
 }
@@ -713,6 +753,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
 }
 .modal-sec h3 {
   margin: 0;
@@ -726,6 +768,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
 }
 .modal-sec select {
   background: #fff;
@@ -734,11 +778,15 @@
   border-radius: 999px;
   padding: 8px 10px;
   min-height: 44px;
+  min-width: 0;
+  max-width: 100%;
 }
 .keygrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr));
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
 }
 .keygrid button,
 .modal-sec .vol input {
@@ -753,9 +801,26 @@
   cursor: pointer;
   font-family: ui-monospace, Menlo, monospace;
   font-size: 13px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .keygrid button.rebind {
   outline: 3px solid var(--pink);
+}
+@media (max-width: 380px) {
+  .modal {
+    padding: 12px;
+    border-radius: 18px;
+  }
+  .modal-backdrop {
+    padding: 8px;
+  }
+  .keygrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Loader hero frost */
@@ -1021,13 +1086,18 @@
   gap: 12px;
   max-height: min(70vh, 520px);
   overflow-y: auto;
+  overflow-x: hidden;
   width: min(calc(100vw - 16px), 420px);
+  max-width: calc(100vw - 16px);
+  min-width: 0;
   box-shadow: var(--glow);
 }
 .fs-sec {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
 }
 .fs-sec h3 {
   margin: 0;
@@ -1052,6 +1122,11 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 700;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .fs-grid button:disabled {
   opacity: 0.4;
@@ -1069,9 +1144,13 @@
   color: var(--muted);
   font-size: 14px;
   font-family: ui-monospace, Menlo, monospace;
+  min-width: 0;
+  max-width: 100%;
 }
 .fs-slotrow select {
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
   background: #fff;
   color: var(--text);
   border: 1px solid var(--stroke);
@@ -1081,6 +1160,8 @@
 }
 .fs-slotrow input[type="range"] {
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
   accent-color: var(--accent);
   min-height: 44px;
 }
