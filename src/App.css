@@ -34,17 +34,30 @@
   text-transform: uppercase;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-weight: 800;
+  line-height: 1;
 }
 .topbar h1 .logo {
-  width: 28px;
-  height: 28px;
+  width: 52px;
+  height: 52px;
   display: block;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 1px solid var(--stroke);
-  background: #fff;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  object-fit: contain;
+  object-position: 50% 50%;
+  /* Sin fondo ni borde: solo se compensa el peso visual del ahoge
+     subiendo la cara 3px para que quede a la par del nombre. */
+  transform: translateY(-3px);
+  flex: 0 0 auto;
+  align-self: center;
+}
+.topbar h1 .brand {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  transform: translateY(1px);
 }
 .sub {
   color: var(--muted);
@@ -567,6 +580,24 @@
   color: var(--text);
   border: 1px solid var(--stroke);
 }
+/* Biblioteca: lista vertical, una ROM por fila (botón crece + acción). */
+.recents {
+  flex-direction: column;
+  align-items: stretch;
+}
+.recent-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.recent-row > button:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .controls button.linklike,
 .linklike {
   background: transparent;
@@ -719,13 +750,34 @@
 .loader-hero::after {
   content: "";
   position: absolute;
-  right: 40px;
-  top: -60px;
-  width: 220px;
-  height: 220px;
-  background: radial-gradient(circle at 40% 40%, #fff, var(--accent-2) 55%, transparent 72%);
-  opacity: 0.5;
+  right: -70px;
+  top: -70px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle closest-side, #fff 0%, var(--accent-2) 55%, transparent 100%);
+  opacity: 0.55;
   pointer-events: none;
+  z-index: 0;
+}
+/* Icono centrado en la bola de la esquina: la bola de 300px en
+   (-70,-70) tiene su centro a 80px de la esquina. */
+.hero-ball-icon {
+  position: absolute;
+  right: 80px;
+  top: 68px;
+  transform: translate(50%, -50%);
+  width: 110px;
+  height: 110px;
+  object-fit: contain;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.75;
+  filter: drop-shadow(0 8px 20px rgba(15, 37, 64, 0.22));
+}
+.loader-hero > *:not(.hero-ball-icon) {
+  position: relative;
+  z-index: 2;
 }
 .loader-kicker {
   margin: 0;
@@ -738,6 +790,23 @@
   letter-spacing: 0.14em;
   font-weight: 800;
   font-family: ui-monospace, Menlo, monospace;
+  max-width: min(100%, 340px);
+  overflow: hidden;
+  white-space: nowrap;
+  display: flex;
+}
+.kicker-track {
+  display: inline-flex;
+  white-space: nowrap;
+  will-change: transform;
+  animation: kicker-scroll 14s linear infinite;
+}
+@keyframes kicker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kicker-track { animation: none; }
 }
 .loader-hero h2 {
   margin: 0;

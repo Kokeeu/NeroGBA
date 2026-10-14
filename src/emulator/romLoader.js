@@ -2,7 +2,7 @@
 // Never fetches ROMs remotely. Only user-supplied dumps.
 
 export const ACCEPTED_EXTS = ['.gba', '.gb', '.gbc', '.sgb', '.zip'];
-const MAX_ROM_BYTES = 32 * 1024 * 1024;
+export const MAX_ROM_BYTES = 32 * 1024 * 1024;
 
 export function validateRomFile(file) {
   if (!file) return 'No se eligió archivo.';

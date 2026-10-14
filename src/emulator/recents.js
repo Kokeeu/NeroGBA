@@ -25,3 +25,10 @@ export function clearRecents() {
   removeKey(LS_KEY);
   return [];
 }
+
+/** Remove a single entry from the list (bytes untouched — see romLibrary). */
+export function removeRecent(namespace) {
+  const next = getRecents().filter((r) => r.namespace !== namespace);
+  writeJSON(LS_KEY, next);
+  return next;
+}

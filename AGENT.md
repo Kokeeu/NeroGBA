@@ -27,7 +27,8 @@ src/
     EmulatorBridge.js         # fachada del núcleo: boot/pause/turbo/slots/.sav
     romLoader.js              # validar .gba/.gb/.gbc/.sgb/.zip + namespace sha1
     storage.js                # 4 savestates en IndexedDB + export/import .state
-    recents.js                # últimas 8 ROMs (solo namespaces, nunca bytes)
+    romLibrary.js             # biblioteca local: ROMs en IndexedDB (8 ROMs/256MB)
+    recents.js                # últimas 8 ROMs (namespaces; bytes solo si guardada)
     input/keyboard.js         # keymap remapeable (CONTROLS, DEFAULT_KEYMAP)
 
   lib/                        # INFRA genérica reutilizable (sin dominio)
@@ -63,6 +64,7 @@ public/mgba/                  # mgba.js + mgba.wasm servidos tal cual
 | Arrancar/pausar/turbo/foto           | `src/emulator/EmulatorBridge.js`                  |
 | Validar ROM o cambiar formatos       | `src/emulator/romLoader.js` (`ACCEPTED_EXTS`)     |
 | Slots guardar/cargar/exportar        | `src/emulator/storage.js` + `EmulatorBridge`      |
+| Biblioteca (guardar/arrancar/borrar) | `src/emulator/romLibrary.js` (claves `gba-rom:{ns}`) |
 | SRAM `.sav` export/import            | `EmulatorBridge.exportSram/importSram`            |
 | Teclado defaults o remapeo           | `src/emulator/input/keyboard.js`                  |
 | Añadir un ajuste de pantalla         | `EmulatorBridge.DEFAULT_DISPLAY` + `SideDocks` + `SettingsModal` |
@@ -118,8 +120,9 @@ checklists 2026 de hooks (un efecto = una responsabilidad, deps completas).
    Cambiar de SDK = tocar 1 archivo + `vendor/`.
 5. **Fail-fast + errores amables** — `validateRomFile()` y `guard()` antes de
    cada acción; `friendlyBootError()` traduce `file://` y 404 de `mgba.js`.
-6. **Claves namespaced** — `gba-savestate:{ns}:{slot}`, `gba-display-v1`,
-   `gba-keymap-v1`, `nerogba-recents-v1`. Namespace de ROM = `slug-sha1(12)`.
+6. **Claves namespaced** — `gba-savestate:{ns}:{slot}`, `gba-rom:{ns}` +
+   `gba-rom:index`, `gba-display-v1`, `gba-keymap-v1`, `nerogba-recents-v1`.
+   Namespace de ROM = `slug-sha1(12)`.
 7. **Sin fugas** — object URLs con revoke a 5s, timers de toast con cleanup,
    `destroy()` del engine al desmontar.
 8. **Docs como código** — cada módulo lleva cabecera de 1-4 líneas: qué es,
@@ -136,6 +139,13 @@ checklists 2026 de hooks (un efecto = una responsabilidad, deps completas).
 - **Guardados:** savestates = `engine.saveState/loadState` + IndexedDB
   (`storage.js`, 4 slots ●/○). SRAM batería la persiste el SDK en OPFS
   (autosave) + export/import `.sav` live vía `saveSram/loadSram`.
+- **Biblioteca local (opt-in):** botón "Guardar .gba" en el dock SISTEMA →
+  `romLibrary.saveRom()` (topes 8 ROMs / 256MB, `LibraryFullError` con mensaje
+  amable, sin borrado automático). Entradas ● arrancan directo desde IndexedDB
+  (`App.handleBootSaved` → `bootFromBytes`, mismo camino que el picker);
+  borrar la ROM conserva slots/SRAM por namespace. Todo local por origen,
+  nadie más lo ve (sin backend). `navigator.storage.persist()` best-effort
+  para iOS.
 - **Input:** teclado remapeable → `engine.setInput(keymap)`; táctil = KeyboardEvents
   sintéticos sobre el keymap activo (el SDK ya escucha `e.code`); gamepad
   standard lo sondea el SDK (sin código propio). Audio se desbloquea solo por

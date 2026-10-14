@@ -25,9 +25,17 @@ import {
   validateRomFile,
 } from './emulator/romLoader.js';
 import { exportSlot, importSlot, SLOTS } from './emulator/storage.js';
-import { addRecent, clearRecents, getRecents } from './emulator/recents.js';
+import {
+  deleteRom,
+  getRom,
+  hasRom,
+  listRoms,
+  requestPersistence,
+  saveRom,
+} from './emulator/romLibrary.js';
+import { addRecent, getRecents, removeRecent } from './emulator/recents.js';
 import { getKeymap, setKeymap } from './emulator/input/keyboard.js';
-import logoUrl from './assets/nero-icon.jpg';
+import logoUrl from './assets/nero-icon.png';
 import './App.css';
 
 export default function App() {
@@ -37,6 +45,9 @@ export default function App() {
   const fileInputRef = useRef(null);
   const importInputRef = useRef(null);
   const savInputRef = useRef(null);
+  // Bytes de la ROM en juego: se retienen para "Guardar .gba" en biblioteca.
+  // Se liberan al cambiar de juego. (~32MB máx., ver romLoader MAX_ROM_BYTES).
+  const romBytesRef = useRef(null);
 
   // --- UI state (local; game truth lives inside the bridge/engine) ---
   const [romName, setRomName] = useState('');
@@ -57,6 +68,9 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fsMenuOpen, setFsMenuOpen] = useState(false);
   const [recents, setRecents] = useState(getRecents);
+  // Biblioteca local de ROMs (IndexedDB): { [namespace]: {name, byteLength, savedAt} }
+  const [library, setLibrary] = useState({});
+  const [romSaved, setRomSaved] = useState(false);
 
   // --- Cross-cutting concerns extracted to hooks (SRP) ---
   const { toasts, toastInfo, toastError, dismissToast, clearToasts } = useToasts();
@@ -75,7 +89,23 @@ export default function App() {
     setSlotsUsed(Object.fromEntries(entries));
   }, [bridge]);
 
+  const refreshLibrary = useCallback(async () => {
+    const index = await listRoms();
+    setLibrary(index);
+    if (namespace) setRomSaved(namespace in index);
+  }, [namespace]);
+
   useEffect(() => () => bridge?.destroy(), [bridge]);
+
+  // Biblioteca: pedir persistencia + cargar índice al montar (y refrescar
+  // tras cada boot, ya que refreshLibrary depende del namespace activo).
+  // Carga async desde IndexedDB (sistema externo): los setState ocurren
+  // tras await, no es un render en cascada.
+  useEffect(() => {
+    requestPersistence();
+    // oxlint-disable-next-line react/set-state-in-effect
+    refreshLibrary();
+  }, [refreshLibrary]);
 
   // Capture next keydown when rebinding a control (Escape cancels).
   useEffect(() => {
@@ -97,47 +127,72 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey, { capture: true });
   }, [rebinding, bridge]);
 
-  // --- Boot (validate -> bytes -> WASM -> UI state) ---
-  const handleFile = useCallback(
-    async (file) => {
+  // --- Boot (bytes -> WASM -> UI state). Shared by picker and library. ---
+  const bootFromBytes = useCallback(
+    async (bytes, name) => {
       clearToasts();
       setFsMenuOpen(false);
-      const err = validateRomFile(file);
-      if (err) {
-        toastError(err);
-        return;
-      }
       setStatus('loading');
       try {
-        const bytes = await fileToBytes(file);
-        const warn = gbaHeaderWarning(bytes, file.name);
+        const warn = gbaHeaderWarning(bytes, name);
         if (warn) toastInfo(warn);
-        const ns = await storageNamespaceFor(file.name, bytes);
+        const ns = await storageNamespaceFor(name, bytes);
         await bridge.boot({
           canvas: canvasRef.current,
           romBytes: bytes,
           namespace: ns,
-          romName: file.name,
+          romName: name,
           volume: muted ? 0 : volume,
           display,
           onFrame: setFps,
         });
+        romBytesRef.current = bytes;
         setNamespace(ns);
-        setRomName(file.name);
+        setRomName(name);
         setSystem(bridge.system);
         setStatus('running');
         setBooted(true);
         setPaused(false);
         setTurbo(1);
-        setRecents(addRecent({ name: file.name, namespace: ns, system: bridge.system }));
+        setRomSaved(await hasRom(ns).catch(() => false));
+        setRecents(addRecent({ name, namespace: ns, system: bridge.system }));
         await refreshSlots(ns);
       } catch (e) {
+        romBytesRef.current = null;
         setStatus('error');
         setBooted(false);
         toastError(e?.message || 'No se pudo arrancar la ROM.');
       }
     },
     [refreshSlots, bridge, volume, muted, display, toastError, toastInfo, clearToasts],
+  );
+
+  const handleFile = useCallback(
+    async (file) => {
+      const err = validateRomFile(file);
+      if (err) {
+        clearToasts();
+        setFsMenuOpen(false);
+        toastError(err);
+        return;
+      }
+      await bootFromBytes(await fileToBytes(file), file.name);
+    },
+    [bootFromBytes, clearToasts, toastError],
+  );
+
+  // Arranque directo desde la biblioteca (sin re-elegir el archivo).
+  const handleBootSaved = useCallback(
+    async (recent) => {
+      const entry = await getRom(recent.namespace);
+      if (!entry) {
+        toastInfo(`Elige de nuevo ${recent.name} para continuar (los guardados se conservan).`);
+        fileInputRef.current?.click();
+        return;
+      }
+      await bootFromBytes(entry.bytes, entry.name);
+    },
+    [bootFromBytes, toastInfo],
   );
 
   // --- Display / audio / turbo ---
@@ -252,6 +307,27 @@ export default function App() {
     }
   };
 
+  // --- Biblioteca local de ROMs (IndexedDB, explícita) ---
+  const onSaveToLibrary = async () => {
+    if (!guard() || !romBytesRef.current) return;
+    try {
+      const mb = await saveRom(namespace, romName, romBytesRef.current);
+      setRomSaved(true);
+      await refreshLibrary();
+      toastInfo(`ROM guardada en este navegador (${(mb / 1048576).toFixed(1)}MB).`);
+    } catch (e) {
+      toastError(e?.message || 'No se pudo guardar la ROM.');
+    }
+  };
+  const onDeleteRom = async (recent) => {
+    await deleteRom(recent.namespace);
+    await refreshLibrary();
+    toastInfo(`${recent.name} borrada de este navegador (los guardados se conservan).`);
+  };
+  const onRemoveRecent = (recent) => {
+    setRecents(removeRecent(recent.namespace));
+  };
+
   // --- Navigation ---
   const onRecent = (r) => {
     fileInputRef.current?.click();
@@ -263,6 +339,8 @@ export default function App() {
     } catch {
       /* sin juego corriendo, nada que pausar */
     }
+    romBytesRef.current = null;
+    setRomSaved(false);
     setPaused(true);
     setFsMenuOpen(false);
     await fs.exit();
@@ -434,12 +512,21 @@ export default function App() {
             onFullscreen={fs.enter}
             onExportSav={onExportSav}
             onImportSavClick={() => savInputRef.current?.click()}
+            romSaved={romSaved}
+            onSaveRom={onSaveToLibrary}
           />
         )}
       </div>
 
       {!booted && (
-        <RecentsBar recents={recents} onRecent={onRecent} onClear={() => setRecents(clearRecents())} />
+        <RecentsBar
+          recents={recents}
+          library={library}
+          onBootSaved={handleBootSaved}
+          onRecent={onRecent}
+          onDeleteRom={onDeleteRom}
+          onRemoveRecent={onRemoveRecent}
+        />
       )}
 
       <footer className="help">

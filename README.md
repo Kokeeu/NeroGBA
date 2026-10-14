@@ -6,7 +6,8 @@ Emulador de Game Boy Advance en el navegador. Vite + React 19 + mGBA compilado a
 
 ## Funciones (v1.1)
 
-- Carga local `.gba/.gb/.gbc/.sgb/.zip` por picker o drag & drop, con validación de cabecera. Últimas 8 ROMs como atajo (re-elige el archivo; los guardados se conservan).
+- Carga local `.gba/.gb/.gbc/.sgb/.zip` por picker o drag & drop, con validación de cabecera. Últimas 8 ROMs como atajo (● arranca directo si está en biblioteca, ○ re-elige el archivo; los guardados se conservan).
+- Biblioteca local opt-in: botón "Guardar .gba" en el dock SISTEMA (8 ROMs / 256MB en IndexedDB, todo queda en este navegador).
 - Núcleo mGBA-WASM: 60fps, canvas 240x160 pixelado, audio por gesto de usuario (teclado, ratón/táctil o mando), volumen + mute.
 - Pausa / seguir / reset / screenshot PNG / pantalla completa del escenario.
 - Turbo 1x→2x→4x (fast-forward sin audio; SDK vendorizado en `src/vendor/mgba-sdk/`, re-sync manual al actualizar `@wasm-gaming/mgba-wasm`).

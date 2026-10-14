@@ -91,6 +91,8 @@ export function RightDocks({
   onFullscreen,
   onExportSav,
   onImportSavClick,
+  romSaved = false,
+  onSaveRom,
 }) {
   return (
     <div className="side-stack right">
@@ -170,6 +172,15 @@ export function RightDocks({
         </button>
         <button type="button" className="txt" disabled={!booted} onClick={onImportSavClick}>
           Importar .sav
+        </button>
+        <button
+          type="button"
+          className="txt"
+          disabled={!booted || romSaved}
+          onClick={onSaveRom}
+          title={romSaved ? 'Esta ROM ya está en la biblioteca local' : 'Guardar la ROM en este navegador (biblioteca local)'}
+        >
+          {romSaved ? '● En biblioteca' : 'Guardar .gba'}
         </button>
       </aside>
     </div>

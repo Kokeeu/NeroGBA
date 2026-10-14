@@ -6,8 +6,8 @@ export default function TopBar({ logoUrl, booted, statusText, onChangeGame, onOp
     <header className="topbar" aria-label="Barra de estado">
       <div className="wb-left">
         <h1>
-          <img src={logoUrl} alt="" className="logo" aria-hidden="true" />
-          NeroGBA
+          <img src={logoUrl} alt="" className="logo" aria-hidden="true" width="52" height="52" decoding="async" />
+          <span className="brand">NeroGBA</span>
         </h1>
         <div className="ws-group" role="status" aria-label="Pantalla actual">
           <span className={`ws${!booted ? ' active' : ''}`}>01 carga</span>

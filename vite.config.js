@@ -24,7 +24,7 @@ export default defineConfig({
         icons: [
           {
             src: 'nero-icon.png',
-            sizes: '256x256',
+            sizes: '512x512',
             type: 'image/png',
             purpose: 'any',
           },
