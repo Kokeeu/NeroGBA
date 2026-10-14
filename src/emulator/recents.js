@@ -1,37 +1,27 @@
 // Recently played ROMs (namespaces only — ROM bytes are never stored).
 // Picking a recent entry re-opens the file picker: saves are keyed by
 // namespace, so re-selecting the same dump resumes slots + SRAM.
+//
+// Persistence via `src/lib/local-storage.js` (fail-soft).
+import { readJSON, removeKey, writeJSON } from '../lib/local-storage.js';
+
 const LS_KEY = 'nerogba-recents-v1';
 const MAX_RECENTS = 8;
 
 export function getRecents() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return [];
-    const list = JSON.parse(raw);
-    return Array.isArray(list) ? list : [];
-  } catch {
-    return [];
-  }
+  const list = readJSON(LS_KEY, []);
+  return Array.isArray(list) ? list : [];
 }
 
 export function addRecent({ name, namespace, system }) {
-  try {
-    const playedAt = Date.now();
-    const rest = getRecents().filter((r) => r.namespace !== namespace);
-    const next = [{ name, namespace, system, playedAt }, ...rest].slice(0, MAX_RECENTS);
-    localStorage.setItem(LS_KEY, JSON.stringify(next));
-    return next;
-  } catch {
-    return getRecents();
-  }
+  const playedAt = Date.now();
+  const rest = getRecents().filter((r) => r.namespace !== namespace);
+  const next = [{ name, namespace, system, playedAt }, ...rest].slice(0, MAX_RECENTS);
+  writeJSON(LS_KEY, next);
+  return next;
 }
 
 export function clearRecents() {
-  try {
-    localStorage.removeItem(LS_KEY);
-  } catch {
-    // best-effort
-  }
+  removeKey(LS_KEY);
   return [];
 }

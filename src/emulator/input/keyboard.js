@@ -1,6 +1,9 @@
 // Remappable keyboard layout. Keys are KeyboardEvent.code values.
 // Actions use the SDK convention: 'p1.a', 'p1.b', 'p1.start', ...
 // Gamepad polling stays inside the SDK (standard mapping, no config needed).
+//
+// Persistence via `src/lib/local-storage.js` (fail-soft).
+import { readJSON, removeKey, writeJSON } from '../../lib/local-storage.js';
 
 export const CONTROLS = [
   'p1.up',
@@ -31,21 +34,16 @@ export const DEFAULT_KEYMAP = {
 const LS_KEY = 'gba-keymap-v1';
 
 export function getKeymap() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return { ...DEFAULT_KEYMAP };
-    const parsed = JSON.parse(raw);
-    return { ...DEFAULT_KEYMAP, ...parsed };
-  } catch {
-    return { ...DEFAULT_KEYMAP };
-  }
+  const parsed = readJSON(LS_KEY, null);
+  if (!parsed || typeof parsed !== 'object') return { ...DEFAULT_KEYMAP };
+  return { ...DEFAULT_KEYMAP, ...parsed };
 }
 
 export function setKeymap(map) {
-  localStorage.setItem(LS_KEY, JSON.stringify(map));
+  writeJSON(LS_KEY, map);
 }
 
 export function resetKeymap() {
-  localStorage.removeItem(LS_KEY);
+  removeKey(LS_KEY);
   return { ...DEFAULT_KEYMAP };
 }

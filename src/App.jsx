@@ -1,3 +1,10 @@
+// App — thin orchestrator (container) for NeroGBA.
+//
+// Architecture (see AGENT.md):
+// - Domain/infra lives in `src/emulator/` (bridge, ROM validation, saves).
+// - Reusable side-effect helpers live in `src/lib/` + `src/hooks/`.
+// - Presentational UI lives in `src/components/` (TopBar, docks, modals).
+// This file only wires state -> bridge -> UI. No CSS, no WASM details here.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EmulatorBridge, TURBO_LEVELS, getDisplayPrefs, setDisplayPrefs } from './emulator/EmulatorBridge.js';
 import Screen from './components/Screen.jsx';
@@ -5,6 +12,12 @@ import TouchControls from './components/TouchControls.jsx';
 import FsMenu from './components/FsMenu.jsx';
 import Toasts from './components/Toasts.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
+import TopBar from './components/TopBar.jsx';
+import LoaderHero from './components/LoaderHero.jsx';
+import RecentsBar from './components/RecentsBar.jsx';
+import { LeftDocks, RightDocks } from './components/SideDocks.jsx';
+import { useToasts } from './hooks/useToasts.js';
+import { useFullscreen } from './hooks/useFullscreen.js';
 import {
   fileToBytes,
   gbaHeaderWarning,
@@ -17,8 +30,6 @@ import { getKeymap, setKeymap } from './emulator/input/keyboard.js';
 import logoUrl from './assets/nero-icon.jpg';
 import './App.css';
 
-const NOTICE_MS = 4500;
-
 export default function App() {
   const canvasRef = useRef(null);
   const stageRef = useRef(null);
@@ -26,15 +37,14 @@ export default function App() {
   const fileInputRef = useRef(null);
   const importInputRef = useRef(null);
   const savInputRef = useRef(null);
-  const toastId = useRef(0);
 
+  // --- UI state (local; game truth lives inside the bridge/engine) ---
   const [romName, setRomName] = useState('');
   const [namespace, setNamespace] = useState('');
   const [status, setStatus] = useState('idle');
   const [booted, setBooted] = useState(false);
   const [fps, setFps] = useState(0);
   const [system, setSystem] = useState('');
-  const [toasts, setToasts] = useState([]);
   const [volume, setVolume] = useState(1);
   const [muted, setMuted] = useState(false);
   const [display, setDisplay] = useState(getDisplayPrefs);
@@ -45,34 +55,17 @@ export default function App() {
   const [keymap, setKeymapState] = useState(getKeymap);
   const [rebinding, setRebinding] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [fullscreen, setFullscreen] = useState(false);
-  const [pseudoFs, setPseudoFs] = useState(false);
   const [fsMenuOpen, setFsMenuOpen] = useState(false);
   const [recents, setRecents] = useState(getRecents);
-  const fullscreenActive = fullscreen || pseudoFs;
+
+  // --- Cross-cutting concerns extracted to hooks (SRP) ---
+  const { toasts, toastInfo, toastError, dismissToast, clearToasts } = useToasts();
+  const fs = useFullscreen(stageRef, toastError);
+  const fullscreenActive = fs.active;
   // El ☰ vive en la fila táctil cuando hay fullscreen; en desktop la fila
   // está oculta por CSS y queda el flotante. Cuál se ve lo decide solo CSS
   // (pointer:coarse) para no desincronizar JS y media queries.
   const closeFsMenu = useCallback(() => setFsMenuOpen(false), []);
-
-  const dismissToast = useCallback((id) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
-
-  const pushToast = useCallback(
-    (kind, text) => {
-      const id = ++toastId.current;
-      setToasts((prev) => [...prev.slice(-3), { id, kind, text }]);
-      if (kind !== 'error') {
-        setTimeout(() => dismissToast(id), NOTICE_MS);
-      }
-      return id;
-    },
-    [dismissToast],
-  );
-
-  const toastError = useCallback((text) => pushToast('error', text), [pushToast]);
-  const toastInfo = useCallback((text) => pushToast('info', text), [pushToast]);
 
   const refreshSlots = useCallback(async (ns) => {
     if (!ns) return;
@@ -83,16 +76,6 @@ export default function App() {
   }, [bridge]);
 
   useEffect(() => () => bridge?.destroy(), [bridge]);
-
-  useEffect(() => {
-    const onFs = () => {
-      const active = !!document.fullscreenElement;
-      setFullscreen(active);
-      if (!active) setFsMenuOpen(false);
-    };
-    document.addEventListener('fullscreenchange', onFs);
-    return () => document.removeEventListener('fullscreenchange', onFs);
-  }, []);
 
   // Capture next keydown when rebinding a control (Escape cancels).
   useEffect(() => {
@@ -114,9 +97,10 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey, { capture: true });
   }, [rebinding, bridge]);
 
+  // --- Boot (validate -> bytes -> WASM -> UI state) ---
   const handleFile = useCallback(
     async (file) => {
-      setToasts([]);
+      clearToasts();
       setFsMenuOpen(false);
       const err = validateRomFile(file);
       if (err) {
@@ -153,9 +137,10 @@ export default function App() {
         toastError(e?.message || 'No se pudo arrancar la ROM.');
       }
     },
-    [refreshSlots, bridge, volume, muted, display, toastError, toastInfo],
+    [refreshSlots, bridge, volume, muted, display, toastError, toastInfo, clearToasts],
   );
 
+  // --- Display / audio / turbo ---
   const onDisplay = (key, value) => {
     const next = { ...display, [key]: value };
     setDisplay(next);
@@ -180,37 +165,13 @@ export default function App() {
     bridge?.setTurbo(next);
     setTurbo(next);
   };
-  const onFullscreen = async () => {
-    // Salir: tanto de Fullscreen API como del fallback iOS (pseudo).
-    if (pseudoFs) {
-      setPseudoFs(false);
-      setFsMenuOpen(false);
-      return;
-    }
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-        setFsMenuOpen(false);
-        return;
-      }
-      const el = stageRef.current;
-      if (el?.requestFullscreen) {
-        await el.requestFullscreen();
-        return;
-      }
-      // Sin Fullscreen API (iPhone Safari): fallback CSS fixed.
-      setPseudoFs(true);
-    } catch {
-      // requestFullscreen puede fallar en iOS: usar fallback en vez de error.
-      if (stageRef.current && !document.fullscreenElement) setPseudoFs(true);
-      else toastError('Pantalla completa no disponible en este navegador.');
-    }
-  };
   const onKeymapReset = (fresh) => {
     setKeymapState(fresh);
     bridge?.applyKeymap(fresh);
     toastInfo('Teclado restablecido a defaults.');
   };
+
+  // --- Guards + transport ---
   const guard = () => {
     if (!booted) {
       toastError('Carga primero una ROM.');
@@ -226,7 +187,9 @@ export default function App() {
     bridge.resume();
     setPaused(false);
   };
+  const handleScreenshot = () => bridge.screenshot().catch((e) => toastError(e.message));
 
+  // --- Savestates (IndexedDB) + SRAM (.sav) ---
   const onSave = async () => {
     if (!guard()) return;
     try {
@@ -288,6 +251,8 @@ export default function App() {
       toastError(e?.message || 'Import .sav falló.');
     }
   };
+
+  // --- Navigation ---
   const onRecent = (r) => {
     fileInputRef.current?.click();
     toastInfo(`Elige de nuevo ${r.name} para continuar (los guardados se conservan).`);
@@ -300,12 +265,7 @@ export default function App() {
     }
     setPaused(true);
     setFsMenuOpen(false);
-    setPseudoFs(false);
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-    } catch {
-      /* salir de fullscreen es best-effort */
-    }
+    await fs.exit();
     setStatus('idle');
     setBooted(false);
   };
@@ -328,31 +288,13 @@ export default function App() {
           : undefined
       }
     >
-      {/* Waybar superior estilo ricing */}
-      <header className="topbar" aria-label="Barra de estado">
-        <div className="wb-left">
-          <h1><img src={logoUrl} alt="" className="logo" aria-hidden="true" />NeroGBA</h1>
-          <div className="ws-group" role="status" aria-label="Pantalla actual">
-            <span className={`ws${!booted ? ' active' : ''}`}>01 carga</span>
-            <span className={`ws${booted ? ' active' : ''}`}>02 juego</span>
-          </div>
-        </div>
-        <div className="wb-center">
-          <span className="wb-status" title={statusText}>
-            {statusText}
-          </span>
-        </div>
-        <div className="wb-right tray">
-          {booted && (
-            <button type="button" onClick={onChangeGame} title="Volver a la pantalla de carga">
-              Cambiar juego
-            </button>
-          )}
-          <button type="button" onClick={() => setSettingsOpen(true)} title="Abrir ajustes">
-            ⚙
-          </button>
-        </div>
-      </header>
+      <TopBar
+        logoUrl={logoUrl}
+        booted={booted}
+        statusText={statusText}
+        onChangeGame={onChangeGame}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
 
       {/* Input ROM único, siempre montado */}
       <input
@@ -365,98 +307,54 @@ export default function App() {
           e.target.value = '';
         }}
       />
+      {/* Inputs ocultos de import (slots + .sav): viven aquí para servir
+          tanto a los docks desktop como al FsMenu móvil. */}
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".state,.bin,application/octet-stream"
+        hidden
+        onChange={(e) => {
+          if (e.target.files?.[0]) onImportFile(e.target.files[0]);
+          e.target.value = '';
+        }}
+      />
+      <input
+        ref={savInputRef}
+        type="file"
+        accept=".sav,.bin,application/octet-stream"
+        hidden
+        onChange={(e) => {
+          if (e.target.files?.[0]) onImportSavFile(e.target.files[0]);
+          e.target.value = '';
+        }}
+      />
 
       <div className={`desktop${!booted ? ' is-loader' : ''}`}>
-        {/* Columna lateral izq: transporte del juego + sistema.
-            Se oculta en el menú de carga para no mostrar controles deshabilitados. */}
         {booted && (
-        <div className="side-stack left">
-          <aside className="dock" aria-label="Transporte del juego">
-            <span className="dock-label">juego</span>
-            {paused ? (
-              <button type="button" disabled={!booted || !paused} onClick={handleResume} title="Seguir" aria-label="Seguir">
-                ▶
-              </button>
-            ) : (
-              <button type="button" disabled={!booted || paused} onClick={handlePause} title="Pausa" aria-label="Pausa">
-                ⏸
-              </button>
-            )}
-            <button type="button" disabled={!booted} onClick={() => bridge.reset()} title="Reset" aria-label="Reset">
-              ⟲
-            </button>
-            <button
-              type="button"
-              disabled={!booted}
-              onClick={() => bridge.screenshot().catch((e) => toastError(e.message))}
-              title="Screenshot"
-              aria-label="Screenshot"
-            >
-              ◉
-            </button>
-          </aside>
-
-          <aside className="dock" aria-label="Slots de guardado">
-            <span className="dock-label">slots</span>
-            <select
-              value={slot}
-              disabled={!booted}
-              onChange={(e) => setSlot(Number(e.target.value))}
-              aria-label="Slot de guardado"
-              title="Slot de guardado"
-            >
-              {SLOTS.map((s) => (
-                <option key={s} value={s}>
-                  {s} {slotsUsed[s] ? '●' : '○'}
-                </option>
-              ))}
-            </select>
-            <button type="button" className="txt" disabled={!booted} onClick={onSave}>
-              Guardar
-            </button>
-            <button type="button" className="txt" disabled={!booted} onClick={onLoad}>
-              Cargar
-            </button>
-            <button type="button" className="txt" disabled={!booted} onClick={onDelete}>
-              Borrar
-            </button>
-            <button type="button" className="txt" disabled={!booted} onClick={onExport}>
-              Exportar
-            </button>
-            <button type="button" className="txt" disabled={!booted} onClick={() => importInputRef.current?.click()}>
-              Importar
-            </button>
-            <input
-              ref={importInputRef}
-              type="file"
-              accept=".state,.bin,application/octet-stream"
-              hidden
-              onChange={(e) => {
-                if (e.target.files?.[0]) onImportFile(e.target.files[0]);
-                e.target.value = '';
-              }}
-            />
-          </aside>
-        </div>
+          <LeftDocks
+            booted={booted}
+            paused={paused}
+            onPause={handlePause}
+            onResume={handleResume}
+            onReset={() => bridge.reset()}
+            onScreenshot={handleScreenshot}
+            slot={slot}
+            slotsUsed={slotsUsed}
+            onSlotChange={setSlot}
+            onSave={onSave}
+            onLoad={onLoad}
+            onDelete={onDelete}
+            onExport={onExport}
+            onImportClick={() => importInputRef.current?.click()}
+          />
         )}
 
         {/* El Screen/canvas vive siempre aquí para no desmontarlo:
             en carga se oculta por CSS (.is-loader) y el boot lo reutiliza. */}
-        <div ref={stageRef} className={`fs-wrap${pseudoFs ? ' pseudo-fullscreen' : ''}${!booted ? ' is-loader' : ''}`}>
+        <div ref={stageRef} className={`fs-wrap${fs.pseudo ? ' pseudo-fullscreen' : ''}${!booted ? ' is-loader' : ''}`}>
           {!booted && (
-            <section className="loader-hero" aria-label="Cargar juego">
-              <p className="loader-kicker">Sala 01 · Carga tu cartucho · ❄ nerogba frost</p>
-              <h2>{status === 'loading' ? 'Colgando el lienzo…' : 'Elige tu obra para empezar'}</h2>
-              <p className="loader-sub">
-                {status === 'loading'
-                  ? 'Arrancando el núcleo mGBA…'
-                  : 'Arrastra un .gba aquí o elígelo desde tu dispositivo. Solo dumps propios, todo queda en local.'}
-              </p>
-              <button type="button" className="load-btn" onClick={() => fileInputRef.current?.click()} disabled={status === 'loading'}>
-                {status === 'loading' ? 'Cargando…' : 'Elegir juego'}
-              </button>
-              <p className="formats">.gba · .gb · .gbc · .sgb · .zip</p>
-            </section>
+            <LoaderHero loading={status === 'loading'} onPick={() => fileInputRef.current?.click()} />
           )}
           <Screen canvasRef={canvasRef} status={booted ? status : 'idle'} onDropFile={handleFile} romName={romName} />
 
@@ -487,9 +385,9 @@ export default function App() {
               onResume={handleResume}
               onReset={() => bridge.reset()}
               onTurbo={onTurbo}
-              onScreenshot={() => bridge.screenshot().catch((e) => toastError(e.message))}
+              onScreenshot={handleScreenshot}
               onToggleMute={onToggleMute}
-              onFullscreen={onFullscreen}
+              onFullscreen={fs.enter}
               onOpenSettings={() => {
                 setFsMenuOpen(false);
                 setSettingsOpen(true);
@@ -521,114 +419,27 @@ export default function App() {
           />
         </div>
 
-        {/* Columna lateral der: video + slots + batería.
-            Se oculta en el menú de carga para no mostrar controles deshabilitados. */}
         {booted && (
-        <div className="side-stack right">
-          <aside className="dock" aria-label="Ajustes de video">
-            <span className="dock-label">video</span>
-            <button
-              type="button"
-              disabled={!booted}
-              onClick={onTurbo}
-              aria-pressed={turbo > 1}
-              className={`pill-toggle${turbo > 1 ? ' on' : ''}`}
-              title={turbo > 1 ? `Turbo ${turbo}x activo (sin audio)` : 'Activar turbo'}
-            >
-              {turbo > 1 ? `${turbo}x` : '1x'}
-            </button>
-            <button
-              type="button"
-              onClick={() => onDisplay('renderFilter', display.renderFilter === 'pixelated' ? 'smooth' : 'pixelated')}
-              title={`Filtro: ${display.renderFilter}`}
-              aria-label="Cambiar filtro"
-            >
-              ◐
-            </button>
-            <button
-              type="button"
-              onClick={() => onDisplay('aspect', display.aspect === 'native' ? '4:3' : 'native')}
-              title={`Aspecto: ${display.aspect}`}
-              aria-label="Cambiar aspecto"
-            >
-              ▭
-            </button>
-            <button
-              type="button"
-              onClick={() => onDisplay('interframeBlending', !display.interframeBlending)}
-              aria-pressed={!!display.interframeBlending}
-              title="Ghosting LCD"
-              aria-label="Ghosting LCD"
-            >
-              ◑
-            </button>
-          </aside>
-
-          <aside className="dock" aria-label="Sistema">
-            <span className="dock-label">sistema</span>
-            <button
-              type="button"
-              disabled={!booted}
-              onClick={onToggleMute}
-              aria-pressed={muted}
-              title={muted ? 'Activar audio' : 'Silenciar'}
-              aria-label={muted ? 'Activar audio' : 'Silenciar'}
-            >
-              {muted ? '♪̸' : '♪'}
-            </button>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={muted ? 0 : volume}
-              disabled={!booted}
-              onChange={(e) => onVolume(Number(e.target.value))}
-              aria-label="Volumen"
-              title="Volumen"
-            />
-            <button
-              type="button"
-              className="txt"
-              onClick={onFullscreen}
-              aria-pressed={fullscreenActive}
-              title="Pantalla completa del escenario"
-            >
-              {fullscreenActive ? 'Salir ⛶' : '⛶ Pantalla'}
-            </button>
-            <button type="button" className="txt" disabled={!booted} onClick={onExportSav}>
-              Exportar .sav
-            </button>
-            <button type="button" className="txt" disabled={!booted} onClick={() => savInputRef.current?.click()}>
-              Importar .sav
-            </button>
-            <input
-              ref={savInputRef}
-              type="file"
-              accept=".sav,.bin,application/octet-stream"
-              hidden
-              onChange={(e) => {
-                if (e.target.files?.[0]) onImportSavFile(e.target.files[0]);
-                e.target.value = '';
-              }}
-            />
-          </aside>
-        </div>
+          <RightDocks
+            booted={booted}
+            turbo={turbo}
+            onTurbo={onTurbo}
+            display={display}
+            onDisplay={onDisplay}
+            muted={muted}
+            volume={volume}
+            onVolume={onVolume}
+            onToggleMute={onToggleMute}
+            fullscreenActive={fullscreenActive}
+            onFullscreen={fs.enter}
+            onExportSav={onExportSav}
+            onImportSavClick={() => savInputRef.current?.click()}
+          />
         )}
       </div>
 
-      {!booted && recents.length > 0 && (
-        <section className="controls recents" aria-label="ROMs recientes">
-          <h2>Recientes · dmenu</h2>
-          {recents.map((r) => (
-            <button key={r.namespace} type="button" onClick={() => onRecent(r)} title={r.system || ''}>
-              {r.name}
-            </button>
-          ))}
-          <button type="button" className="linklike" onClick={() => setRecents(clearRecents())}>
-            Limpiar
-          </button>
-        </section>
+      {!booted && (
+        <RecentsBar recents={recents} onRecent={onRecent} onClear={() => setRecents(clearRecents())} />
       )}
 
       <footer className="help">

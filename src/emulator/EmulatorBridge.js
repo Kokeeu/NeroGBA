@@ -7,6 +7,8 @@
 import { load } from '../vendor/mgba-sdk/mgba.sdk.js';
 import { deleteSlot, readSlot, slotHasData, writeSlot } from './storage.js';
 import { getKeymap } from './input/keyboard.js';
+import { downloadBlob } from '../lib/download.js';
+import { readJSON, writeJSON } from '../lib/local-storage.js';
 
 export const TURBO_LEVELS = [1, 2, 4];
 
@@ -19,17 +21,13 @@ export const DEFAULT_DISPLAY = {
 const DISPLAY_LS_KEY = 'gba-display-v1';
 
 export function getDisplayPrefs() {
-  try {
-    const raw = localStorage.getItem(DISPLAY_LS_KEY);
-    if (!raw) return { ...DEFAULT_DISPLAY };
-    return { ...DEFAULT_DISPLAY, ...JSON.parse(raw) };
-  } catch {
-    return { ...DEFAULT_DISPLAY };
-  }
+  const parsed = readJSON(DISPLAY_LS_KEY, null);
+  if (!parsed || typeof parsed !== 'object') return { ...DEFAULT_DISPLAY };
+  return { ...DEFAULT_DISPLAY, ...parsed };
 }
 
 export function setDisplayPrefs(prefs) {
-  localStorage.setItem(DISPLAY_LS_KEY, JSON.stringify(prefs));
+  writeJSON(DISPLAY_LS_KEY, prefs);
 }
 
 // Asset URLs resolved against the page, not the domain root, so the app
@@ -182,13 +180,7 @@ export class EmulatorBridge {
     if (!this.engine) throw new Error('Sin emulador arrancado.');
     const bytes = await this.engine.saveSram();
     if (!bytes) throw new Error('Este juego no tiene guardado de batería.');
-    const blob = new Blob([bytes], { type: 'application/octet-stream' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = this.savName();
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    downloadBlob(bytes, this.savName());
     return bytes.length;
   }
 
@@ -203,12 +195,7 @@ export class EmulatorBridge {
   async screenshot() {
     if (!this.engine) throw new Error('Sin emulador arrancado.');
     const blob = await this.engine.screenshot();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${this.romName || 'gba'}.png`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    downloadBlob(blob, `${this.romName || 'gba'}.png`, 'image/png');
   }
 
   destroy() {
