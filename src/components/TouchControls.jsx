@@ -1,10 +1,10 @@
 // Touch overlay for coarse pointers (phones/tablets).
-// Layout estilo My Boy: fila L [☰ ⛶] R, cruceta + A/B y Select/Start.
+// Layout estilo My Boy: fila L [⛶ ☰ turbo] R, cruceta + A/B y Select/Start.
 // Drives the emulator by dispatching synthetic KeyboardEvents through the
 // active keymap — the SDK already listens on window for keydown/keyup by
 // e.code, so no extra input plumbing is needed. CSS hides this on fine
-// pointers; it only renders while a game is booted. El turbo vive dentro
-// del menú ☰ (FsMenu); en el deck queda ⛶ para acceso rápido.
+// pointers; it only renders while a game is booted. El turbo es toggle
+// 1x <-> preferido (la velocidad se elige en docks / menú ☰).
 import { useRef } from 'react';
 
 function press(code) {
@@ -45,13 +45,36 @@ function TouchButton({ action, label, code, className = '' }) {
   );
 }
 
-export default function TouchControls({ keymap, onMenu, menuOpen = false, showMenu = false, onFullscreen, fullscreenActive = false }) {
+export default function TouchControls({
+  keymap,
+  onMenu,
+  menuOpen = false,
+  showMenu = false,
+  onFullscreen,
+  fullscreenActive = false,
+  turbo = 1,
+  turboPref = 2,
+  onTurbo,
+}) {
   const c = (action) => keymap[action];
+  const turboOn = turbo > 1;
   return (
     <section className="touch" aria-label="Controles táctiles">
       <div className="tshoulders">
         <TouchButton action="L" label="L" code={c('p1.l')} className="tshoulder" />
         <div className="tcenter">
+          {onFullscreen && (
+            <button
+              type="button"
+              className="tbtn tfullscreen"
+              onClick={onFullscreen}
+              aria-pressed={fullscreenActive}
+              aria-label={fullscreenActive ? 'Salir de pantalla completa' : 'Pantalla completa'}
+              title={fullscreenActive ? 'Salir de pantalla completa' : 'Pantalla completa'}
+            >
+              ⛶
+            </button>
+          )}
           {showMenu && (
             <button
               type="button"
@@ -64,16 +87,16 @@ export default function TouchControls({ keymap, onMenu, menuOpen = false, showMe
               {menuOpen ? '✕' : '☰'}
             </button>
           )}
-          {onFullscreen && (
+          {onTurbo && (
             <button
               type="button"
-              className="tbtn tfullscreen"
-              onClick={onFullscreen}
-              aria-pressed={fullscreenActive}
-              aria-label={fullscreenActive ? 'Salir de pantalla completa' : 'Pantalla completa'}
-              title={fullscreenActive ? 'Salir de pantalla completa' : 'Pantalla completa'}
+              className={`tbtn tturbo${turboOn ? ' on' : ''}`}
+              onClick={onTurbo}
+              aria-pressed={turboOn}
+              aria-label={turboOn ? `Desactivar turbo (ahora ${turbo}x)` : `Activar turbo ${turboPref}x`}
+              title={turboOn ? `Turbo ${turbo}x activo, pulsa para volver a 1x` : `Turbo ${turboPref}x apagado, pulsa para activar`}
             >
-              ⛶
+              {turboOn ? `${turbo}x` : `${turboPref}x`}
             </button>
           )}
         </div>

@@ -10,7 +10,23 @@ import { getKeymap } from './input/keyboard.js';
 import { downloadBlob } from '../lib/download.js';
 import { readJSON, writeJSON } from '../lib/local-storage.js';
 
-export const TURBO_LEVELS = [1, 2, 4];
+export const TURBO_LEVELS = [1, 2, 4, 10];
+
+// Preferred turbo speed (2x / 4x / 10x). The turbo button toggles 1x <-> pref,
+// so you never cycle through the other speeds. Persisted like display prefs.
+export const TURBO_OPTIONS = [2, 4, 10];
+
+const TURBO_PREF_LS_KEY = 'gba-turbo-pref-v1';
+
+export function getTurboPref() {
+  const parsed = readJSON(TURBO_PREF_LS_KEY, 2);
+  return TURBO_OPTIONS.includes(parsed) ? parsed : 2;
+}
+
+export function setTurboPref(pref) {
+  if (!TURBO_OPTIONS.includes(pref)) return;
+  writeJSON(TURBO_PREF_LS_KEY, pref);
+}
 
 export const DEFAULT_DISPLAY = {
   renderFilter: 'pixelated',

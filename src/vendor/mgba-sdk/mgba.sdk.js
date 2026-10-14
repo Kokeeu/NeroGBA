@@ -1,5 +1,5 @@
 // Vendored from @wasm-gaming/mgba-wasm@0.1.1 (dist/mgba/*) — NeroGBA patch:
-// fast-forward turbo with sound (setTurbo 1/2/4). Re-sync manually on package updates.
+// fast-forward turbo with sound (setTurbo 1/2/4/10). Re-sync manually on package updates.
 // Upstream has no speed API: its rAF loop is audio-clocked and capped at
 // MAX_FRAMES_PER_TICK, so turbo needs the tick/runFrames changes below.
 import { manifest } from './mgba.manifest.js';
@@ -325,7 +325,7 @@ export async function load(config) {
     // NeroGBA turbo: fast-forward levels. Declared up here (before the
     // first syncCoreRate call) because pushWorkletRate scales the posted
     // rate by the active multiplier.
-    const TURBO_LEVELS = [1, 2, 4];
+    const TURBO_LEVELS = [1, 2, 4, 10];
     let turboMultiplier = 1;
     let coreRate = 0;
     // Posts the worklet's read-cursor ratio. In turbo the core produces N×
@@ -737,7 +737,7 @@ export async function load(config) {
             buildKeymap({ ...DEFAULT_KEYMAP, ...map });
         }
     };
-    // NeroGBA turbo: 1 = normal speed, 2/4 = fast-forward with faster
+    // NeroGBA turbo: 1 = normal speed, 2/4/10 = fast-forward with faster
     // audio (the worklet ratio is scaled ×N). Invalid levels fall back to
     // 1. Not exposed via config (no options-schema entry), only as an
     // instance method used by EmulatorBridge.
@@ -750,7 +750,7 @@ export async function load(config) {
         turboWallStart = 0;
         turboWallFrames = 0;
         if (slowing) {
-            // Drop the fast-forward backlog so 4x->1x resumes video on the
+            // Drop the fast-forward backlog so Nx->1x resumes video on the
             // next tick instead of freezing while seconds of audio drain.
             flushAudio();
         }

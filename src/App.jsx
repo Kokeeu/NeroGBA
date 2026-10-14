@@ -6,7 +6,7 @@
 // - Presentational UI lives in `src/components/` (TopBar, docks, modals).
 // This file only wires state -> bridge -> UI. No CSS, no WASM details here.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { EmulatorBridge, TURBO_LEVELS, getDisplayPrefs, setDisplayPrefs } from './emulator/EmulatorBridge.js';
+import { EmulatorBridge, getDisplayPrefs, getTurboPref, setDisplayPrefs, setTurboPref } from './emulator/EmulatorBridge.js';
 import Screen from './components/Screen.jsx';
 import TouchControls from './components/TouchControls.jsx';
 import FsMenu from './components/FsMenu.jsx';
@@ -62,6 +62,7 @@ export default function App() {
   const [display, setDisplay] = useState(getDisplayPrefs);
   const [paused, setPaused] = useState(false);
   const [turbo, setTurbo] = useState(1);
+  const [turboPref, setTurboPrefState] = useState(getTurboPref);
   const [slot, setSlot] = useState(1);
   const [slotsUsed, setSlotsUsed] = useState({});
   const [keymap, setKeymapState] = useState(getKeymap);
@@ -220,9 +221,21 @@ export default function App() {
     bridge?.setMuted(next);
   };
   const onTurbo = () => {
-    const next = TURBO_LEVELS[(TURBO_LEVELS.indexOf(turbo) + 1) % TURBO_LEVELS.length];
-    bridge?.setTurbo(next);
-    setTurbo(next);
+    // Toggle 1x <-> preferred speed (no cycling through the other level).
+    const next = turbo > 1 ? 1 : turboPref;
+    const applied = bridge?.setTurbo(next) ?? next;
+    setTurbo(applied);
+  };
+  const onTurboPref = (pref) => {
+    const v = Number(pref);
+    if (![2, 4, 10].includes(v)) return;
+    setTurboPref(v);
+    setTurboPrefState(v);
+    // If turbo is active, jump live to the new speed.
+    if (turbo > 1) {
+      const applied = bridge?.setTurbo(v) ?? v;
+      setTurbo(applied);
+    }
   };
   const onKeymapReset = (fresh) => {
     setKeymapState(fresh);
@@ -447,6 +460,9 @@ export default function App() {
               showMenu={showMobileMenu}
               onFullscreen={fs.enter}
               fullscreenActive={fullscreenActive}
+              turbo={turbo}
+              turboPref={turboPref}
+              onTurbo={onTurbo}
             />
           )}
 
@@ -458,6 +474,8 @@ export default function App() {
               booted={booted}
               paused={paused}
               turbo={turbo}
+              turboPref={turboPref}
+              onTurboPref={onTurboPref}
               muted={muted}
               slot={slot}
               slotsUsed={slotsUsed}
@@ -509,7 +527,9 @@ export default function App() {
           <RightDocks
             booted={booted}
             turbo={turbo}
+            turboPref={turboPref}
             onTurbo={onTurbo}
+            onTurboPref={onTurboPref}
             display={display}
             onDisplay={onDisplay}
             muted={muted}

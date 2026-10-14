@@ -80,7 +80,9 @@ export function LeftDocks({
 export function RightDocks({
   booted,
   turbo,
+  turboPref = 2,
   onTurbo,
+  onTurboPref,
   display,
   onDisplay,
   muted,
@@ -105,10 +107,20 @@ export function RightDocks({
           onClick={onTurbo}
           aria-pressed={turbo > 1}
           className={`pill-toggle${turbo > 1 ? ' on' : ''}`}
-          title={turbo > 1 ? `Turbo ${turbo}x activo (con audio)` : 'Activar turbo'}
+          title={turbo > 1 ? `Turbo ${turbo}x activo, pulsa para volver a 1x` : `Activar turbo ${turboPref}x`}
         >
-          {turbo > 1 ? `${turbo}x` : '1x'}
+          {turbo > 1 ? `${turbo}x` : `${turboPref}x`}
         </button>
+        <select
+          value={turboPref}
+          onChange={(e) => onTurboPref?.(Number(e.target.value))}
+          aria-label="Velocidad de turbo"
+          title="Velocidad de turbo (2x, 4x o 10x)"
+        >
+          <option value={2}>2x</option>
+          <option value={4}>4x</option>
+          <option value={10}>10x</option>
+        </select>
         <button
           type="button"
           onClick={() => onDisplay('renderFilter', display.renderFilter === 'pixelated' ? 'smooth' : 'pixelated')}

@@ -1332,7 +1332,7 @@
   align-items: center;
   gap: 8px;
 }
-/* Pareja centrada arriba (menú + fullscreen), espejo de SELECT/START abajo */
+/* Trío central superior (⛶ fullscreen + ☰ menú + turbo), espejo de SELECT/START abajo */
 .tcenter {
   display: flex;
   align-items: center;
@@ -1344,9 +1344,7 @@
   /* Mismo vidrio neutro que el resto (antes pill blanca opaca) */
   font-weight: 800;
 }
-/* Botones de la pareja superior (☰ menú + ⛶ fullscreen): pills neutras.
-   (.tturbo se conserva por compatibilidad pero ya no se usa en el deck;
-   el turbo vive dentro del menú ☰.) */
+/* Botones del trío superior (⛶ + ☰ + turbo): pills neutras. */
 .touch .tbtn.tturbo,
 .touch .tbtn.tfullscreen {
   min-width: 52px;
@@ -1370,6 +1368,21 @@
     rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.4);
   box-shadow: var(--lg-spec), var(--lg-shadow), 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+/* Con 3 pills al centro (⛶ ☰ turbo) se compacta en pantallas angostas
+   para no empujar L/R fuera del deck. */
+@media (max-width: 400px) {
+  .tshoulders .tbtn.tshoulder {
+    min-width: 70px;
+  }
+  .touch .tbtn.tmenu,
+  .touch .tbtn.tfullscreen,
+  .touch .tbtn.tturbo {
+    min-width: 46px;
+  }
+  .tcenter {
+    gap: 6px;
+  }
 }
 .tmain {
   display: flex;
@@ -1598,6 +1611,17 @@
   }
   .topbar h1 {
     font-size: 15px;
+  }
+  /* En móvil se oculta el switch 01/02 para ahorrar espacio:
+     queda logo + Cambiar juego en una fila y el status abajo. */
+  .ws-group {
+    display: none;
+  }
+  .wb-left {
+    flex: 1 1 auto;
+  }
+  .wb-right {
+    margin-left: auto;
   }
   .stage {
     padding: 10px;

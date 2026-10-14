@@ -12,6 +12,8 @@ export default function FsMenu({
   booted,
   paused,
   turbo,
+  turboPref = 2,
+  onTurboPref,
   muted,
   slot,
   slotsUsed,
@@ -99,7 +101,7 @@ export default function FsMenu({
               <h3>Video</h3>
               <div className="fs-grid">
                 <button type="button" disabled={!booted} onClick={act(onTurbo, true)}>
-                  Turbo {turbo > 1 ? `${turbo}x` : '1x'}
+                  Turbo {turbo > 1 ? `${turbo}x` : `${turboPref}x`} {turbo > 1 ? 'ON' : 'OFF'}
                 </button>
                 {onDisplay && (
                   <>
@@ -118,6 +120,21 @@ export default function FsMenu({
                   </>
                 )}
               </div>
+              {onTurboPref && (
+                <label className="fs-slotrow">
+                  Turbo
+                  <select
+                    value={turboPref}
+                    disabled={!booted}
+                    onChange={(e) => onTurboPref(Number(e.target.value))}
+                    aria-label="Velocidad de turbo"
+                  >
+                    <option value={2}>2x</option>
+                    <option value={4}>4x</option>
+                    <option value={10}>10x</option>
+                  </select>
+                </label>
+              )}
               {onVolume && (
                 <label className="fs-slotrow">
                   Vol
