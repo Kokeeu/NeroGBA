@@ -1,5 +1,5 @@
 // Vendored from @wasm-gaming/mgba-wasm@0.1.1 (dist/mgba/*) — NeroGBA patch:
-// fast-forward turbo (setTurbo 1/2/4). Re-sync manually on package updates.
+// fast-forward turbo with sound (setTurbo 1/2/4). Re-sync manually on package updates.
 // Upstream has no speed API: its rAF loop is audio-clocked and capped at
 // MAX_FRAMES_PER_TICK, so turbo needs the tick/runFrames changes below.
 import { manifest } from './mgba.manifest.js';
@@ -314,12 +314,24 @@ export async function load(config) {
      * moves. A GBA game raising the SOUNDBIAS resolution doubles it mid-play, so
      * this is re-read every tick rather than latched at boot.
      */
+    // NeroGBA turbo: fast-forward levels. Declared up here (before the
+    // first syncCoreRate call) because pushWorkletRate scales the posted
+    // rate by the active multiplier.
+    const TURBO_LEVELS = [1, 2, 4];
+    let turboMultiplier = 1;
     let coreRate = 0;
+    // Posts the worklet's read-cursor ratio. In turbo the core produces N×
+    // source frames per wall second, so the worklet must also consume N× —
+    // the result is faster audio (pitch ×N, chipmunk) with no backlog.
+    const pushWorkletRate = () => {
+        if (coreRate > 0)
+            sink.port.postMessage({ rate: coreRate * turboMultiplier });
+    };
     const syncCoreRate = () => {
         const rate = mod._mgbawasm_sample_rate();
         if (rate > 0 && rate !== coreRate) {
             coreRate = rate;
-            sink.port.postMessage({ rate });
+            pushWorkletRate();
         }
         return coreRate;
     };
@@ -559,11 +571,6 @@ export async function load(config) {
     // reports its consumption in the same unit for exactly that reason.
     const TARGET_SECONDS = 0.09;
     const MAX_FRAMES_PER_TICK = 5;
-    // NeroGBA turbo: fast-forward levels. While >1 the tick runs a fixed
-    // frame count and discards audio (the worklet consumes in real time, so
-    // enqueueing turbo audio would backlog seconds of sound).
-    const TURBO_LEVELS = [1, 2, 4];
-    let turboMultiplier = 1;
     let rafId = 0;
     let running = false;
     let paused = false;
@@ -609,25 +616,10 @@ export async function load(config) {
                 return;
         }
     };
-    const dropAudio = () => {
-        // NeroGBA turbo path: pull produced samples off the core so its
-        // internal queue stays bounded, but never enqueue them to the
-        // worklet (which consumes in real time and would backlog).
-        for (;;) {
-            const frames = mod._mgbawasm_read_audio(audioPtr, AUDIO_SCRATCH_FRAMES);
-            if (frames <= 0)
-                return;
-            if (frames < AUDIO_SCRATCH_FRAMES)
-                return;
-        }
-    };
-    const runFrames = (count, drop = false) => {
+    const runFrames = (count) => {
         for (let i = 0; i < count; i++) {
             mod._mgbawasm_run_frame();
-            if (drop)
-                dropAudio();
-            else
-                drainAudio();
+            drainAudio();
             fpsCount++;
         }
     };
@@ -640,10 +632,10 @@ export async function load(config) {
         let frames = 0;
         const turbo = turboMultiplier > 1;
         if (turbo) {
-            // NeroGBA turbo: fixed frame count per tick. Gain forced to 0
-            // every tick so volume writes during turbo stay silent; the
-            // configured volume (state.volume) is restored on setTurbo(1).
-            gain.gain.value = 0;
+            // NeroGBA turbo: fixed frame count per tick. Audio is enqueued
+            // as usual and the worklet consumes it ×N (pushWorkletRate), so
+            // it plays faster instead of backlogging. Gain stays at the
+            // configured volume; mute/volume keep working via config.
             frames = turboMultiplier;
             wallClockStart = 0;
         }
@@ -668,7 +660,7 @@ export async function load(config) {
         }
         frames = Math.max(0, Math.min(turbo ? turboMultiplier : MAX_FRAMES_PER_TICK, frames));
         if (frames > 0) {
-            runFrames(frames, turbo);
+            runFrames(frames);
             renderFrame();
         }
         if (!fpsWindowStart)
@@ -693,18 +685,14 @@ export async function load(config) {
             buildKeymap({ ...DEFAULT_KEYMAP, ...map });
         }
     };
-    // NeroGBA turbo: 1 = normal speed, 2/4 = fast-forward. Invalid levels
-    // fall back to 1. Not exposed via config (no options-schema entry), only
-    // as an instance method used by EmulatorBridge.
+    // NeroGBA turbo: 1 = normal speed, 2/4 = fast-forward with faster
+    // audio (the worklet ratio is scaled ×N). Invalid levels fall back to
+    // 1. Not exposed via config (no options-schema entry), only as an
+    // instance method used by EmulatorBridge.
     const setTurbo = (level) => {
         const next = TURBO_LEVELS.includes(level) ? level : 1;
         turboMultiplier = next;
-        if (next === 1) {
-            gain.gain.value = Math.max(0, Math.min(1, Number(state.volume ?? 1)));
-        }
-        else {
-            gain.gain.value = 0;
-        }
+        pushWorkletRate();
         wallClockStart = 0;
         return turboMultiplier;
     };

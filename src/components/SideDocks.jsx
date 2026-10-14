@@ -104,7 +104,7 @@ export function RightDocks({
           onClick={onTurbo}
           aria-pressed={turbo > 1}
           className={`pill-toggle${turbo > 1 ? ' on' : ''}`}
-          title={turbo > 1 ? `Turbo ${turbo}x activo (sin audio)` : 'Activar turbo'}
+          title={turbo > 1 ? `Turbo ${turbo}x activo (con audio)` : 'Activar turbo'}
         >
           {turbo > 1 ? `${turbo}x` : '1x'}
         </button>
