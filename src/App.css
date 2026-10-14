@@ -1087,7 +1087,7 @@
   .fs-wrap:fullscreen .touch .tbtn,
   .fs-wrap.pseudo-fullscreen .touch .tbtn {
     pointer-events: auto;
-    opacity: 0.94;
+    opacity: 1;
   }
 }
 @media (pointer: coarse) and (orientation: landscape) {
@@ -1141,7 +1141,7 @@
   .fs-wrap:fullscreen .touch .tbtn,
   .fs-wrap.pseudo-fullscreen .touch .tbtn {
     pointer-events: auto;
-    opacity: 0.86;
+    opacity: 1;
   }
   .fs-wrap .touch .tbtn:active,
   .fs-wrap:fullscreen .touch .tbtn:active,
@@ -1151,20 +1151,39 @@
 }
 .touch .tbtn {
   touch-action: none;
-  background: rgba(15, 37, 64, 0.88);
-  border: 1px solid var(--text);
-  color: #fff;
+  /* Liquid Glass iPhone Clear: botón neutro translúcido, sin color propio.
+     Base = deck vertical sobre fondo claro: tint gris mínimo + texto navy.
+     El overlay sobre el juego (fullscreen/landscape) lo vuelve blanco
+     translúcido con texto blanco (ver override más abajo). */
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 40%),
+    rgba(15, 37, 64, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: var(--text);
   border-radius: 16px;
   min-width: 56px;
   min-height: 56px;
   font-size: 16px;
   font-weight: 700;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) brightness(var(--lg-bright));
+  backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat)) brightness(var(--lg-bright));
+  box-shadow: var(--lg-spec), 0 1px 6px rgba(15, 37, 64, 0.06);
+  transition: transform 120ms ease, filter 120ms ease, background 120ms ease;
+}
+/* Sin gloss superior: era una capa blanca que nublaba */
+.touch .tbtn::after {
+  display: none;
 }
 .touch .tbtn:active {
-  transform: translateY(1px);
-  background: var(--accent);
+  /* Feedback iPhone: escala + shimmer neutro (sin tinte de color) */
+  transform: scale(0.96);
+  filter: brightness(1.3);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 40%),
+    var(--lg-clear-active);
 }
 .tshoulders {
   display: flex;
@@ -1181,16 +1200,14 @@
 .tshoulders .tbtn.tshoulder {
   min-width: 88px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.85);
-  color: var(--text);
+  /* Mismo vidrio neutro que el resto (antes pill blanca opaca) */
   font-weight: 800;
 }
 .touch .tbtn.tturbo {
   min-width: 52px;
   min-height: 44px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.85);
-  color: var(--text);
+  /* Mismo vidrio neutro que el resto */
   font-size: 18px;
   font-weight: 800;
 }
@@ -1202,9 +1219,12 @@
   font-size: 18px;
 }
 .touch .tbtn.tturbo.on {
-  background: var(--pink);
-  border-color: var(--pink);
-  color: #fff;
+  /* Estado ON sin color: apenas más visible + aro fino */
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 40%),
+    rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: var(--lg-spec), var(--lg-shadow), 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 .tmain {
   display: flex;
@@ -1230,12 +1250,12 @@
   min-height: 44px;
   font-size: 12px;
   border-radius: 999px;
-  background: rgba(15, 37, 64, 0.8);
-  color: #fff;
+  /* Mismo vidrio neutro (el texto pequeño se lee por text-shadow) */
   transform: rotate(-8deg);
 }
 .touch .tbtn.tsmall:active {
-  transform: rotate(-8deg) translateY(1px);
+  transform: rotate(-8deg) scale(0.96);
+  filter: brightness(1.25);
 }
 .ab {
   display: flex;
@@ -1248,19 +1268,91 @@
   min-width: 62px;
   min-height: 62px;
   font-size: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  outline: 1px solid var(--stroke);
-  color: #fff;
+  /* A/B neutros: mismo vidrio que la cruceta, sin rosa ni celeste */
 }
 .touch .tbtn.tround:first-child {
-  background: radial-gradient(circle at 35% 30%, #ffb3d9, var(--pink) 55%, #c2274b);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 40%),
+    var(--lg-clear);
 }
 .touch .tbtn.tround:last-child {
   min-width: 76px;
   min-height: 76px;
   font-size: 22px;
   margin-top: 22px;
-  background: radial-gradient(circle at 35% 30%, #9adcfa, var(--accent) 55%, #0f5a85);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 40%),
+    var(--lg-clear);
+}
+/* Overlay sobre el juego (fullscreen + landscape): el fondo es el juego
+   en movimiento, así que el vidrio se vuelve blanco translúcido con
+   texto blanco + sombra oscura (flip claro/oscuro como iOS). */
+@media (pointer: coarse) and (orientation: landscape) {
+  .fs-wrap .touch .tbtn {
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 40%),
+      var(--lg-clear);
+    border-color: var(--lg-line);
+    color: #fff;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+    box-shadow: var(--lg-spec), var(--lg-shadow);
+  }
+}
+.fs-wrap:fullscreen .touch .tbtn,
+.fs-wrap.pseudo-fullscreen .touch .tbtn {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 40%),
+    var(--lg-clear);
+  border-color: var(--lg-line);
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--lg-spec), var(--lg-shadow);
+}
+/* Liquid Glass: sin vidrio-sobre-vidrio. El deck ya es blur; los botones
+   no necesitan opacidad extra (el material lleva su propio alfa). */
+@media (pointer: coarse) {
+  .touch {
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    backdrop-filter: blur(14px) saturate(160%);
+  }
+  .fs-wrap:fullscreen .touch .tbtn,
+  .fs-wrap.pseudo-fullscreen .touch .tbtn {
+    pointer-events: auto;
+    opacity: 1;
+  }
+}
+/* Accesibilidad Liquid Glass (las 3 que nombra Apple, modos distintos):
+   - reduced-transparency → frost denso (no translúcido)
+   - contrast-more → sólido + borde (el borde solo aparece aquí)
+   - reduced-motion → sin escala/bounce */
+@media (prefers-reduced-transparency: reduce) {
+  .touch .tbtn {
+    -webkit-backdrop-filter: blur(24px) saturate(120%);
+    backdrop-filter: blur(24px) saturate(120%);
+    background: rgba(40, 45, 60, 0.85);
+  }
+  .touch .tbtn::after {
+    display: none;
+  }
+}
+@media (prefers-contrast: more) {
+  .touch .tbtn {
+    background: #0f2540;
+    border: 2px solid #fff;
+    text-shadow: none;
+  }
+  .touch .tbtn::after {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .touch .tbtn {
+    transition: none;
+  }
+  .touch .tbtn:active,
+  .touch .tbtn.tsmall:active {
+    transform: none;
+  }
 }
 
 @media (max-width: 900px) {

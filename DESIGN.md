@@ -33,7 +33,7 @@ Referencia: fondo sky celeste + cards blancas translúcidas + pills `TOKYO, JAPA
 
 ## Layout Móvil (<900px / <768px, coarse)
 - Grid colapsa a 1 columna: docks pasan a carrusel horizontal pill (`.dock` row, sin labels), waybar se envuelve (status a fila propia).
-- Estilo My Boy intacto: en vertical deck vidrio debajo de la pantalla (fila L » R con turbo central, cruceta izq + A/B en diagonal der con A grande abajo, Select/Start centrados abajo); en horizontal y en fullscreen overlay translúcido sobre el juego (arriba L a la izq, R a la der y pareja menú+turbo centrada como SELECT/START, sin blur de fondo). `touch-action: none`, multitáctil por pointerId. Botones táctiles navy vidrio, B rosa radial, A celeste radial (A grande abajo). PWA instalable.
+- Estilo My Boy intacto: en vertical deck vidrio debajo de la pantalla (fila L » R con turbo central, cruceta izq + A/B en diagonal der con A grande abajo, Select/Start centrados abajo); en horizontal y en fullscreen overlay translúcido sobre el juego (arriba L a la izq, R a la der y pareja menú+turbo centrada como SELECT/START, sin blur de fondo). `touch-action: none`, multitáctil por pointerId. Botones táctiles fantasma ultra-clear, todos neutros sin color (tint `rgba(255,255,255,.02)` + `blur 4px saturate 140%` + borde fino `.22` + sin gloss; solo quedan borde sutil + glifo; turbo ON = apenas más visible + aro fino). PWA instalable.
 
 ## Componentes
 - `Screen.jsx`: ventana `.stage-window` + `.win-bar` (dots + `romName`) + `.stage` + canvas + overlay "Arrastra .gba aquí".

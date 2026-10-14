@@ -21,6 +21,19 @@
   --turquesa: #1e9bd7;
   --melocoton: #ffd3e8;
   --glow: 0 8px 32px rgba(30, 155, 215, 0.22);
+  /* Liquid Glass ultra-clear fantasma: el cuerpo casi no existe,
+     solo quedan borde fino + glifo. El blur/tint mínimos son lo que
+     distingue cristal de hielo nublado. */
+  --lg-blur: 4px;
+  --lg-sat: 140%;
+  --lg-bright: 1;
+  --lg-line: rgba(255, 255, 255, 0.22);
+  --lg-spec: inset 1px 1px 1px rgba(255, 255, 255, 0.15), inset -1px -1px 1px rgba(255, 255, 255, 0.04);
+  --lg-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+  --lg-clear: rgba(255, 255, 255, 0.02);
+  --lg-clear-active: rgba(255, 255, 255, 0.08);
+  --lg-navy: rgba(255, 255, 255, 0.14);
+  --lg-white: rgba(255, 255, 255, 0.14);
   font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
   color: var(--text);
   background: var(--bg);
