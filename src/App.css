@@ -1427,8 +1427,10 @@
   }
   .dock {
     flex-direction: row;
+    align-items: center;
     position: static;
     overflow-x: auto;
+    scrollbar-width: thin;
     border-radius: 999px;
     padding: 8px;
   }
@@ -1451,11 +1453,27 @@
   .dock-label {
     display: none;
   }
+  /* En móvil los docks son carrusel horizontal: los botones no deben
+     estirarse al 100% (regla de desktop) ni partirse en 2 líneas;
+     tamaño auto + nowrap y scroll lateral. */
+  .side-stack .dock button,
+  .dock button {
+    width: auto;
+    max-width: none;
+    min-width: 44px;
+    flex: 0 0 auto;
+  }
+  .dock button.txt {
+    white-space: nowrap;
+    padding: 8px 14px;
+  }
   .dock input[type="range"] {
     flex: 1 1 140px;
   }
   .dock select {
     min-width: 96px;
+    width: auto;
+    flex: 0 0 auto;
   }
   .wb-center {
     order: 3;
