@@ -561,11 +561,8 @@ export default function App() {
       <footer className="help">
         {!booted ? (
           <>
-            <p>
-              Tus dumps nunca salen del dispositivo. Sin BIOS se usa el reemplazo HLE del núcleo
-              mGBA-WASM.
-            </p>
-            <p className="legal">Usa solo dumps propios. No se incluye ninguna ROM con copyright.</p>
+            <p>Sin BIOS se usa el reemplazo HLE del núcleo mGBA-WASM.</p>
+            <p className="legal">No se incluye ninguna ROM con copyright.</p>
           </>
         ) : (
           <>
@@ -573,7 +570,7 @@ export default function App() {
               Gamepad standard funciona solo. Sin BIOS se usa el reemplazo HLE. SRAM de batería la
               persiste el núcleo en OPFS cada 15s (exportable como .sav).
             </p>
-            <p className="legal">Usa solo dumps propios. No se incluye ninguna ROM con copyright.</p>
+            <p className="legal">No se incluye ninguna ROM con copyright.</p>
           </>
         )}
       </footer>

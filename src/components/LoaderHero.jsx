@@ -16,7 +16,7 @@ export default function LoaderHero({ loading, onPick }) {
       <p className="loader-sub">
         {loading
           ? 'Arrancando el núcleo mGBA…'
-          : 'Arrastra un .gba aquí o elígelo desde tu dispositivo. Solo dumps propios, todo queda en local.'}
+          : 'Arrastra un .gba aquí o elígelo desde tu dispositivo. Todo queda en local.'}
       </p>
       <button type="button" className="load-btn" onClick={onPick} disabled={loading}>
         {loading ? 'Cargando…' : 'Elegir juego'}
